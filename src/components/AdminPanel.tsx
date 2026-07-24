@@ -396,7 +396,21 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   // Sync settings when loaded
   useEffect(() => {
     if (siteSettings) {
-      setSettingsForm(siteSettings);
+      const parseArray = <T,>(val: any, fallback: T[] = []): T[] => {
+        if (Array.isArray(val)) return val;
+        if (val && typeof val === 'object') return Object.values(val) as T[];
+        return fallback;
+      };
+
+      setSettingsForm({
+        ...siteSettings,
+        categories: parseArray(siteSettings.categories, ["Action", "RPG", "Graphics", "Utility Scripts", "Events", "Patch Logs"]),
+        tags: parseArray(siteSettings.tags, []),
+        menus: parseArray(siteSettings.menus, []),
+        counters: parseArray(siteSettings.counters, []),
+        customPages: parseArray(siteSettings.customPages, []),
+        customSocialLinks: parseArray(siteSettings.customSocialLinks, [])
+      });
       
       // Sync subgroups
       if (siteSettings.hero) {
@@ -1576,38 +1590,76 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   };
 
   // TAXONOMIES MUTATORS
-  const handleAddCategory = () => {
+  const safeGetArray = <T,>(val: any, fallback: T[] = []): T[] => {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === 'object') return Object.values(val) as T[];
+    return fallback;
+  };
+
+  const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     const cat = newCategory.trim();
-    if (settingsForm.categories?.includes(cat)) {
+    const currentCats = safeGetArray<string>(settingsForm.categories, ["Action", "RPG", "Graphics", "Utility Scripts", "Events", "Patch Logs"]);
+    if (currentCats.includes(cat)) {
       alert("Category already exists.");
       return;
     }
-    const updated = settingsForm.categories ? [...settingsForm.categories, cat] : [cat];
-    setSettingsForm({ ...settingsForm, categories: updated });
+    const updated = [...currentCats, cat];
+    const finalSettings = { ...settingsForm, categories: updated };
+    setSettingsForm(finalSettings);
     setNewCategory('');
+    try {
+      await set(dbRef(db, 'settings'), finalSettings);
+      setSiteSettings(finalSettings);
+    } catch (err: any) {
+      console.error("Error auto-saving category to database:", err);
+    }
   };
 
-  const handleRemoveCategory = (cat: string) => {
-    const updated = settingsForm.categories ? settingsForm.categories.filter(c => c !== cat) : [];
-    setSettingsForm({ ...settingsForm, categories: updated });
+  const handleRemoveCategory = async (cat: string) => {
+    const currentCats = safeGetArray<string>(settingsForm.categories);
+    const updated = currentCats.filter(c => c !== cat);
+    const finalSettings = { ...settingsForm, categories: updated };
+    setSettingsForm(finalSettings);
+    try {
+      await set(dbRef(db, 'settings'), finalSettings);
+      setSiteSettings(finalSettings);
+    } catch (err: any) {
+      console.error("Error removing category from database:", err);
+    }
   };
 
-  const handleAddTag = () => {
+  const handleAddTag = async () => {
     if (!newTag.trim()) return;
     const t = newTag.trim().toLowerCase();
-    if (settingsForm.tags?.includes(t)) {
+    const currentTags = safeGetArray<string>(settingsForm.tags);
+    if (currentTags.includes(t)) {
       alert("Tag already exists.");
       return;
     }
-    const updated = settingsForm.tags ? [...settingsForm.tags, t] : [t];
-    setSettingsForm({ ...settingsForm, tags: updated });
+    const updated = [...currentTags, t];
+    const finalSettings = { ...settingsForm, tags: updated };
+    setSettingsForm(finalSettings);
     setNewTag('');
+    try {
+      await set(dbRef(db, 'settings'), finalSettings);
+      setSiteSettings(finalSettings);
+    } catch (err: any) {
+      console.error("Error auto-saving tag to database:", err);
+    }
   };
 
-  const handleRemoveTag = (t: string) => {
-    const updated = settingsForm.tags ? settingsForm.tags.filter(tg => tg !== t) : [];
-    setSettingsForm({ ...settingsForm, tags: updated });
+  const handleRemoveTag = async (t: string) => {
+    const currentTags = safeGetArray<string>(settingsForm.tags);
+    const updated = currentTags.filter(tg => tg !== t);
+    const finalSettings = { ...settingsForm, tags: updated };
+    setSettingsForm(finalSettings);
+    try {
+      await set(dbRef(db, 'settings'), finalSettings);
+      setSiteSettings(finalSettings);
+    } catch (err: any) {
+      console.error("Error removing tag from database:", err);
+    }
   };
 
   const handleTagsCheckboxToggle = (t: string) => {
@@ -2120,7 +2172,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none"
                     >
                       <option value="">Select Category</option>
-                      {settingsForm.categories?.map((cat, i) => (
+                      {safeGetArray<string>(settingsForm.categories).map((cat, i) => (
                         <option key={i} value={cat}>{cat}</option>
                       ))}
                     </select>
@@ -2256,7 +2308,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                 <div className="space-y-2">
                   <label className="block text-[10px] font-mono uppercase text-gray-400 font-bold">Link Query Tags</label>
                   <div className="flex flex-wrap gap-2 p-4 bg-black/60 border border-white/5 rounded-xl max-h-[140px] overflow-y-auto">
-                    {settingsForm.tags?.map((t, idx) => {
+                    {safeGetArray<string>(settingsForm.tags).map((t, idx) => {
                       const enabled = postForm.tags?.includes(t);
                       return (
                         <button
@@ -4719,7 +4771,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       </div>
 
                       <div className="flex flex-wrap gap-2 p-3 bg-black/30 border border-white/5 rounded-xl max-h-[160px] overflow-y-auto">
-                        {settingsForm.categories?.map((cat, idx) => (
+                        {safeGetArray<string>(settingsForm.categories).map((cat, idx) => (
                           <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-mono hover:border-cyber-magenta/30">
                             <span className="text-white uppercase">{cat}</span>
                             <button
@@ -4755,7 +4807,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       </div>
 
                       <div className="flex flex-wrap gap-2 p-3 bg-black/30 border border-white/5 rounded-xl max-h-[160px] overflow-y-auto">
-                        {settingsForm.tags?.map((t, idx) => (
+                        {safeGetArray<string>(settingsForm.tags).map((t, idx) => (
                           <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-[10px] font-mono hover:border-cyber-cyan/30">
                             <span className="text-gray-400 bg-white/0 border-0 lowercase">#{t}</span>
                             <button

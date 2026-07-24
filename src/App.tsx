@@ -453,6 +453,13 @@ export default function App() {
   const visitorCounted = useRef(false);
   const newsletterRef = useRef<HTMLDivElement>(null);
 
+  // Safely extract array values from Firebase snapshot object/array data
+  const parseArray = <T,>(val: any, fallback: T[]): T[] => {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === 'object') return Object.values(val) as T[];
+    return fallback;
+  };
+
   // Listen for realtime configurations from Firebase
   useEffect(() => {
     const settingsRef = ref(db, 'settings');
@@ -471,14 +478,14 @@ export default function App() {
           buttons: { ...DEFAULT_SITE_SETTINGS.buttons, ...(data.buttons || {}) },
           legalPages: { ...DEFAULT_SITE_SETTINGS.legalPages, ...(data.legalPages || {}) },
           contactPage: { ...DEFAULT_SITE_SETTINGS.contactPage, ...(data.contactPage || {}) },
-          menus: Array.isArray(data.menus) ? data.menus : (DEFAULT_SITE_SETTINGS.menus || []),
-          categories: Array.isArray(data.categories) ? data.categories : DEFAULT_SITE_SETTINGS.categories,
-          tags: Array.isArray(data.tags) ? data.tags : DEFAULT_SITE_SETTINGS.tags,
-          counters: Array.isArray(data.counters) ? data.counters : [],
-          customPages: Array.isArray(data.customPages) ? data.customPages : (DEFAULT_SITE_SETTINGS.customPages || []),
-          customSocialLinks: Array.isArray(data.customSocialLinks) ? data.customSocialLinks : (DEFAULT_SITE_SETTINGS.customSocialLinks || []),
-          homeSections: Array.isArray(data.homeSections) ? data.homeSections : (DEFAULT_SITE_SETTINGS.homeSections || []),
-          footerColumns: Array.isArray(data.footerColumns) ? data.footerColumns : (DEFAULT_SITE_SETTINGS.footerColumns || []),
+          menus: parseArray(data.menus, DEFAULT_SITE_SETTINGS.menus || []),
+          categories: parseArray(data.categories, DEFAULT_SITE_SETTINGS.categories),
+          tags: parseArray(data.tags, DEFAULT_SITE_SETTINGS.tags),
+          counters: parseArray(data.counters, []),
+          customPages: parseArray(data.customPages, DEFAULT_SITE_SETTINGS.customPages || []),
+          customSocialLinks: parseArray(data.customSocialLinks, DEFAULT_SITE_SETTINGS.customSocialLinks || []),
+          homeSections: parseArray(data.homeSections, DEFAULT_SITE_SETTINGS.homeSections || []),
+          footerColumns: parseArray(data.footerColumns, DEFAULT_SITE_SETTINGS.footerColumns || []),
           footer: { ...DEFAULT_SITE_SETTINGS.footer, ...(data.footer || {}) },
           siteTagline: data.siteTagline || '',
           siteDescription: data.siteDescription || '',
