@@ -260,6 +260,16 @@ export interface SiteSettings {
   };
 }
 
+export interface AdSenseUnit {
+  id: string;
+  name: string; // Ad Name
+  slot: string; // Predefined slot identifier (e.g. 'homepage_top', 'article_middle', etc.)
+  adCode: string; // Ad Unit Code
+  enabled: boolean; // Status
+  createdAt: string; // Created Date
+  updatedAt: string; // Updated Date
+}
+
 export interface Advertisement {
   id: string;
   title: string;

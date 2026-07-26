@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Calendar, Tag, User, Eye, Download, ExternalLink, CalendarDays, MapPin, Share2, Copy, Check, MessageCircle, Send } from 'lucide-react';
-import { ContentPost, Advertisement } from '../types';
+import { ContentPost, Advertisement, AdSenseUnit } from '../types';
 import { db } from '../lib/firebase';
 import { ref, runTransaction } from 'firebase/database';
 import AdPlacement from './AdPlacement';
+import AdSensePlacement from './AdSensePlacement';
 
 interface ContentDetailsProps {
   post: ContentPost;
@@ -12,9 +13,10 @@ interface ContentDetailsProps {
   onCategoryClick?: (category: string) => void;
   onActionClick?: (link: string, openInNewTab: boolean) => void;
   ads?: Advertisement[];
+  adsenseUnits?: AdSenseUnit[];
 }
 
-export default function ContentDetails({ post, onClose, onTagClick, onCategoryClick, onActionClick, ads = [] }: ContentDetailsProps) {
+export default function ContentDetails({ post, onClose, onTagClick, onCategoryClick, onActionClick, ads = [], adsenseUnits = [] }: ContentDetailsProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -107,8 +109,9 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
 
       {/* TOP DETAIL ADS */}
       <div className="max-w-5xl mx-auto px-6 mt-4">
-        {post.type === 'blogs' && <AdPlacement position="blog_top" ads={ads} />}
-        {post.type === 'mods' && <AdPlacement position="mod_top" ads={ads} />}
+        <AdSensePlacement slot="article_top" units={adsenseUnits} />
+        {post.type === 'blogs' && <><AdSensePlacement slot="blog_top" units={adsenseUnits} /><AdPlacement position="blog_top" ads={ads} /></>}
+        {post.type === 'mods' && <><AdSensePlacement slot="mod_top" units={adsenseUnits} /><AdPlacement position="mod_top" ads={ads} /></>}
       </div>
 
       {/* Primary Article Layout */}
@@ -121,7 +124,8 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
               {post.shortDescription}
             </p>
 
-            {/* MIDDLE BLOG ADS */}
+            {/* MIDDLE ARTICLE ADS */}
+            <AdSensePlacement slot="article_middle" units={adsenseUnits} />
             {post.type === 'blogs' && <AdPlacement position="blog_middle" ads={ads} />}
 
             {/* Complete HTML/Markdown Description */}
@@ -131,8 +135,9 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
           </div>
 
           {/* BOTTOM COLUMN ADS */}
-          {post.type === 'blogs' && <AdPlacement position="blog_bottom" ads={ads} />}
-          {post.type === 'mods' && <AdPlacement position="mod_bottom" ads={ads} />}
+          <AdSensePlacement slot="article_bottom" units={adsenseUnits} />
+          {post.type === 'blogs' && <><AdSensePlacement slot="blog_bottom" units={adsenseUnits} /><AdPlacement position="blog_bottom" ads={ads} /></>}
+          {post.type === 'mods' && <><AdSensePlacement slot="mod_bottom" units={adsenseUnits} /><AdPlacement position="mod_bottom" ads={ads} /></>}
         </div>
 
         {/* Custom Actions & Specs Panels (Right Sidebar) */}

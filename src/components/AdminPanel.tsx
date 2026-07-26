@@ -58,7 +58,8 @@ import {
   Cpu
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
-import { ContentPost, SiteSettings, NavMenu, ActionButton, LegalPage, VideoItem, Advertisement } from '../types';
+import { ContentPost, SiteSettings, NavMenu, ActionButton, LegalPage, VideoItem, Advertisement, AdSenseUnit } from '../types';
+import AdSensePlacement, { ADSENSE_PREDEFINED_SLOTS } from './AdSensePlacement';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -86,8 +87,19 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   // Loaded Content States
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [adsenseUnits, setAdsenseUnits] = useState<AdSenseUnit[]>([]);
   const [settingsForm, setSettingsForm] = useState<SiteSettings>(siteSettings);
   const [isLoading, setIsLoading] = useState(false);
+
+  // AdSense Unit Form State
+  const [editingAdsenseUnitId, setEditingAdsenseUnitId] = useState<string | null>(null);
+  const [adsenseForm, setAdsenseForm] = useState({
+    name: '',
+    slot: 'homepage_top',
+    adCode: '',
+    enabled: true
+  });
+  const [previewAdsenseUnit, setPreviewAdsenseUnit] = useState<AdSenseUnit | null>(null);
 
   // Stats Counters state with animated counter goals
   const [stats, setStats] = useState({
@@ -498,11 +510,106 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       setVideos(list);
     });
 
+    const adsenseUnitsRef = dbRef(db, 'adsense_units');
+    const unsubAdsense = onValue(adsenseUnitsRef, (snapshot) => {
+      const data = snapshot.val();
+      const list = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) as AdSenseUnit[] : [];
+      setAdsenseUnits(list);
+    });
+
     return () => {
       unsubPosts();
       unsubVideos();
+      unsubAdsense();
     };
   }, [user]);
+
+  // ADSENSE UNIT CRUD HANDLERS
+  const handleSaveAdsenseUnit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adsenseForm.name.trim() || !adsenseForm.adCode.trim()) {
+      alert("Please provide both an Ad Name and the Ad Unit Code.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const id = editingAdsenseUnitId || 'adsense_' + Date.now();
+      const todayISO = new Date().toISOString().split('T')[0];
+      const existing = adsenseUnits.find(u => u.id === editingAdsenseUnitId);
+
+      const unitPayload: AdSenseUnit = {
+        id,
+        name: adsenseForm.name.trim(),
+        slot: adsenseForm.slot,
+        adCode: adsenseForm.adCode.trim(),
+        enabled: adsenseForm.enabled,
+        createdAt: existing ? existing.createdAt : todayISO,
+        updatedAt: todayISO
+      };
+
+      await set(dbRef(db, `adsense_units/${id}`), unitPayload);
+
+      setEditingAdsenseUnitId(null);
+      setAdsenseForm({
+        name: '',
+        slot: 'homepage_top',
+        adCode: '',
+        enabled: true
+      });
+      alert("AdSense Unit saved successfully!");
+    } catch (err) {
+      console.error("Error saving AdSense unit:", err);
+      alert("Failed to save AdSense Unit.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditAdsenseUnit = (unit: AdSenseUnit) => {
+    setEditingAdsenseUnitId(unit.id);
+    setAdsenseForm({
+      name: unit.name,
+      slot: unit.slot,
+      adCode: unit.adCode,
+      enabled: unit.enabled
+    });
+    // Scroll to form view
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteAdsenseUnit = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this AdSense Unit?")) return;
+    try {
+      await remove(dbRef(db, `adsense_units/${id}`));
+    } catch (err) {
+      console.error("Error deleting AdSense unit:", err);
+    }
+  };
+
+  const handleToggleAdsenseUnit = async (unit: AdSenseUnit) => {
+    try {
+      await set(dbRef(db, `adsense_units/${unit.id}/enabled`), !unit.enabled);
+    } catch (err) {
+      console.error("Error toggling AdSense unit status:", err);
+    }
+  };
+
+  const handleDuplicateAdsenseUnit = async (unit: AdSenseUnit) => {
+    try {
+      const newId = 'adsense_' + Date.now();
+      const todayISO = new Date().toISOString().split('T')[0];
+      const duplicatedUnit: AdSenseUnit = {
+        ...unit,
+        id: newId,
+        name: `${unit.name} (Copy)`,
+        createdAt: todayISO,
+        updatedAt: todayISO
+      };
+      await set(dbRef(db, `adsense_units/${newId}`), duplicatedUnit);
+    } catch (err) {
+      console.error("Error duplicating AdSense unit:", err);
+    }
+  };
 
   // Calculate high-fidelity numerical stats, then animate count-up values smoothly
   useEffect(() => {
@@ -5362,107 +5469,301 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
               {/* HEADER INFO */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.01] border border-white/5 p-6 rounded-2xl">
                 <div>
-                  <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Google AdSense Integration & Ad Defeater Engine</h2>
-                  <p className="text-xs text-gray-400 mt-1">Manage global Google AdSense Auto-Ads, responsive ad unit codes, and universal AdBlocker bypass protection across the entire site.</p>
+                  <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Google AdSense Manager</h2>
+                  <p className="text-xs text-gray-400 mt-1">Create, edit, duplicate, and assign Google AdSense ad units to predefined layout slots with automatic realtime synchronization.</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-3 py-1.5 bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan font-mono text-[10px] font-bold uppercase rounded-lg flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,240,255,0.2)]">
-                    <span className="w-2 h-2 rounded-full bg-cyber-cyan animate-ping" />
-                    AD DEFEATER: ACTIVE
+                  <span className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold uppercase rounded-lg flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    ADSENSE ENGINE ACTIVE
                   </span>
                 </div>
               </div>
 
-              {/* ADSENSE SCRIPT CODE CONFIGURATOR */}
+              {/* SECTION 1: CREATE OR EDIT ADSENSE UNIT FORM */}
               <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-display font-black text-white uppercase tracking-wider">AdSense Publisher Code</h3>
-                    {(() => {
-                      const match = (settingsForm.adsenseCode || '').match(/(ca-pub-\d+|pub-\d+)/i);
-                      if (match) {
-                        const id = match[0].startsWith('pub-') ? `ca-${match[0]}` : match[0];
-                        return (
-                          <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold rounded">
-                            DETECTED CLIENT: {id}
-                          </span>
-                        );
-                      }
-                      return (
-                        <span className="px-2 py-0.5 bg-gray-800 text-gray-400 font-mono text-[10px] rounded">
-                          NO CLIENT ID DETECTED YET
-                        </span>
-                      );
-                    })()}
-                  </div>
-                  <span className="text-[9px] uppercase text-amber-500 font-bold font-mono">Verified AdSense Partner Suite</span>
-                </div>
-
-                {/* PRESET GENERATOR BUTTONS */}
-                <div className="space-y-2">
-                  <label className="block text-[10px] uppercase text-gray-400 font-bold font-mono">Quick Preset Inserters</label>
-                  <div className="flex flex-wrap gap-2">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <h3 className="text-xs font-display font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-amber-400" />
+                    {editingAdsenseUnitId ? "Edit Google AdSense Unit" : "Create New Google AdSense Unit"}
+                  </h3>
+                  {editingAdsenseUnitId && (
                     <button
                       type="button"
                       onClick={() => {
-                        const sample = `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1234567890123456" crossorigin="anonymous"></script>`;
-                        setSettingsForm({ ...settingsForm, adsenseCode: sample });
+                        setEditingAdsenseUnitId(null);
+                        setAdsenseForm({ name: '', slot: 'homepage_top', adCode: '', enabled: true });
                       }}
-                      className="px-3 py-1.5 bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-gray-300 hover:text-amber-400 text-[10px] font-mono rounded-lg transition-all cursor-pointer"
+                      className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono text-[10px] rounded transition-all cursor-pointer"
                     >
-                      + Insert Auto-Ads Header Tag
+                      Cancel Editing
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const sample = `<ins class="adsbygoogle"\n  style="display:block"\n  data-ad-client="ca-pub-1234567890123456"\n  data-ad-slot="9876543210"\n  data-ad-format="auto"\n  data-full-width-responsive="true"></ins>\n<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>`;
-                        setSettingsForm({ ...settingsForm, adsenseCode: (settingsForm.adsenseCode ? settingsForm.adsenseCode + '\n\n' : '') + sample });
-                      }}
-                      className="px-3 py-1.5 bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-gray-300 hover:text-amber-400 text-[10px] font-mono rounded-lg transition-all cursor-pointer"
-                    >
-                      + Append Responsive Banner Code
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSettingsForm({ ...settingsForm, adsenseCode: '' })}
-                      className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-[10px] font-mono rounded-lg transition-all cursor-pointer ml-auto"
-                    >
-                      Clear Code
-                    </button>
-                  </div>
+                  )}
                 </div>
 
-                <form onSubmit={handleSaveAdsenseCode} className="space-y-4">
+                <form onSubmit={handleSaveAdsenseUnit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* AD NAME */}
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase text-gray-400 font-bold font-mono">Ad Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={adsenseForm.name}
+                        onChange={(e) => setAdsenseForm({ ...adsenseForm, name: e.target.value })}
+                        placeholder="e.g. Homepage Top Responsive Leaderboard"
+                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-white font-sans text-xs focus:border-amber-500/50 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* PREDEFINED SLOT SELECTOR */}
+                    <div className="space-y-1">
+                      <label className="block text-[10px] uppercase text-gray-400 font-bold font-mono">Predefined Ad Slot *</label>
+                      <select
+                        value={adsenseForm.slot}
+                        onChange={(e) => setAdsenseForm({ ...adsenseForm, slot: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-white font-sans text-xs focus:border-amber-500/50 focus:outline-none"
+                      >
+                        {ADSENSE_PREDEFINED_SLOTS.map(s => (
+                          <option key={s.key} value={s.key}>
+                            {s.name} ({s.description})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* AD UNIT CODE */}
                   <div className="space-y-1">
-                    <label className="block text-[10px] uppercase text-gray-400 font-bold font-mono">Google AdSense Head Script or Ad Unit Code</label>
-                    <span className="block text-[9px] text-gray-500 mb-2">Paste your client ca-pub ID or complete AdSense script block. The engine automatically handles deferred initialization & AdBlock bypass.</span>
+                    <label className="block text-[10px] uppercase text-gray-400 font-bold font-mono">Ad Unit Code (HTML / JS / INS Tag) *</label>
                     <textarea
-                      rows={10}
-                      value={settingsForm.adsenseCode || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, adsenseCode: e.target.value })}
-                      placeholder="<!-- Paste your Google AdSense publisher code or client ca-pub ID here -->"
-                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white font-mono text-[11px] h-52 focus:border-amber-500/50 focus:outline-none"
+                      rows={5}
+                      required
+                      value={adsenseForm.adCode}
+                      onChange={(e) => setAdsenseForm({ ...adsenseForm, adCode: e.target.value })}
+                      placeholder={`<ins class="adsbygoogle"\n  style="display:block"\n  data-ad-client="ca-pub-1234567890123456"\n  data-ad-slot="9876543210"\n  data-ad-format="auto"\n  data-full-width-responsive="true"></ins>\n<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>`}
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white font-mono text-[11px] h-32 focus:border-amber-500/50 focus:outline-none"
                     />
                   </div>
 
-                  <div className="p-4 bg-amber-500/5 border border-amber-500/15 rounded-xl space-y-2">
-                    <p className="text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1.5">
-                      <span>💡</span> Ad Defeater Protection Features
-                    </p>
-                    <ul className="text-[10px] text-gray-400 space-y-1.5 list-disc list-inside leading-relaxed font-sans">
-                      <li><strong>Auto Client ID Detection:</strong> Extracts your <code className="text-amber-400 font-mono">ca-pub-XXX</code> identifier and automatically binds the Google Publisher JS SDK.</li>
-                      <li><strong>AdBlocker Bypass Engine:</strong> If a visitor uses an AdBlocker (uBlock, AdGuard, Brave Shields) or if script network requests fail, all ad slots gracefully fallback to self-hosted sponsor banners instead of breaking or leaving empty layout gaps.</li>
-                      <li><strong>Deferred Layout Pushing:</strong> Ensures AdSense <code className="text-amber-400 font-mono">adsbygoogle.push(&#123;&#125;)</code> executes only after elements are mounted to prevent zero-width calculation errors.</li>
-                    </ul>
+                  {/* STATUS TOGGLE */}
+                  <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <div>
+                      <span className="text-[11px] font-bold text-white uppercase block">Enable Ad Unit</span>
+                      <span className="text-[9px] text-gray-400 font-mono">When active, this ad renders automatically in its predefined slot</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={adsenseForm.enabled}
+                        onChange={(e) => setAdsenseForm({ ...adsenseForm, enabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
                   </div>
 
-                  <div className="flex justify-end pt-2">
+                  {/* SUBMIT BUTTON */}
+                  <div className="flex justify-end gap-3 pt-2">
+                    {editingAdsenseUnitId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingAdsenseUnitId(null);
+                          setAdsenseForm({ name: '', slot: 'homepage_top', adCode: '', enabled: true });
+                        }}
+                        className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer"
+                      >
+                        Reset Form
+                      </button>
+                    )}
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="px-8 py-3 bg-gradient-to-r from-amber-500 to-amber-700 text-black font-display font-black text-xs uppercase tracking-wider rounded-xl hover:shadow-[0_0_12px_rgba(245,158,11,0.3)] transition-all cursor-pointer"
+                      className="px-8 py-2.5 bg-gradient-to-r from-amber-500 to-amber-700 text-black font-display font-black text-xs uppercase tracking-wider rounded-xl hover:shadow-[0_0_12px_rgba(245,158,11,0.3)] transition-all cursor-pointer"
                     >
-                      {isLoading ? "SAVING CONFIGURATIONS..." : "SAVE ADSENSE INTEGRATION LIVE"}
+                      {isLoading ? "SAVING AD UNIT..." : editingAdsenseUnitId ? "UPDATE AD UNIT LIVE" : "+ CREATE AD UNIT"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* SECTION 2: AD UNITS DIRECTORY TABLE */}
+              <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
+                  <div>
+                    <h3 className="text-xs font-display font-black text-white uppercase tracking-wider">Configured AdSense Units</h3>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Manage, duplicate, enable/disable, or preview active Google AdSense units across slots.</p>
+                  </div>
+                  <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold rounded-lg">
+                    TOTAL UNITS: {adsenseUnits.length}
+                  </span>
+                </div>
+
+                {adsenseUnits.length === 0 ? (
+                  <div className="p-8 text-center bg-black/40 border border-dashed border-white/10 rounded-xl space-y-2">
+                    <p className="text-xs text-gray-400">No Google AdSense units configured yet.</p>
+                    <p className="text-[10px] text-gray-500 font-mono">Use the form above to create your first AdSense Unit in a predefined slot.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/10 text-[10px] uppercase font-mono text-gray-400">
+                          <th className="py-2.5 px-3">Ad Name</th>
+                          <th className="py-2.5 px-3">Predefined Slot</th>
+                          <th className="py-2.5 px-3">Status</th>
+                          <th className="py-2.5 px-3">Created Date</th>
+                          <th className="py-2.5 px-3">Updated Date</th>
+                          <th className="py-2.5 px-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-xs">
+                        {adsenseUnits.map(unit => {
+                          const slotObj = ADSENSE_PREDEFINED_SLOTS.find(s => s.key === unit.slot);
+                          return (
+                            <tr key={unit.id} className="hover:bg-white/[0.02] transition-colors">
+                              <td className="py-3 px-3 font-bold text-white">
+                                {unit.name}
+                              </td>
+                              <td className="py-3 px-3 font-mono text-[11px]">
+                                <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded">
+                                  {slotObj ? slotObj.name : unit.slot}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3">
+                                {unit.enabled !== false ? (
+                                  <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold rounded">
+                                    ENABLED
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-gray-800 border border-gray-700 text-gray-400 font-mono text-[10px] rounded">
+                                    DISABLED
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 font-mono text-[10px] text-gray-400">
+                                {unit.createdAt || 'N/A'}
+                              </td>
+                              <td className="py-3 px-3 font-mono text-[10px] text-gray-400">
+                                {unit.updatedAt || 'N/A'}
+                              </td>
+                              <td className="py-3 px-3 text-right space-x-1">
+                                {/* TOGGLE STATUS */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAdsenseUnit(unit)}
+                                  title={unit.enabled ? "Disable Unit" : "Enable Unit"}
+                                  className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                    unit.enabled 
+                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20' 
+                                      : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'
+                                  }`}
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* PREVIEW */}
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewAdsenseUnit(unit)}
+                                  title="Live Preview Unit"
+                                  className="p-1.5 bg-cyber-cyan/10 hover:bg-cyber-cyan/20 text-cyber-cyan border border-cyber-cyan/30 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* DUPLICATE */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDuplicateAdsenseUnit(unit)}
+                                  title="Duplicate Unit"
+                                  className="p-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* EDIT */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditAdsenseUnit(unit)}
+                                  title="Edit Unit"
+                                  className="p-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* DELETE */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAdsenseUnit(unit.id)}
+                                  title="Delete Unit"
+                                  className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-all cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* LIVE PREVIEW MODAL */}
+              {previewAdsenseUnit && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-[#0b0c10] border border-amber-500/30 rounded-2xl p-6 max-w-3xl w-full space-y-4 shadow-2xl relative">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div>
+                        <h4 className="text-sm font-display font-black text-white uppercase tracking-wider">AdSense Unit Live Preview</h4>
+                        <p className="text-[10px] text-amber-400 font-mono mt-0.5">{previewAdsenseUnit.name} ({previewAdsenseUnit.slot})</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewAdsenseUnit(null)}
+                        className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] rounded-lg cursor-pointer"
+                      >
+                        CLOSE PREVIEW
+                      </button>
+                    </div>
+
+                    <div className="p-4 bg-black/80 border border-white/10 rounded-xl min-h-[120px] flex items-center justify-center">
+                      <AdSensePlacement slot={previewAdsenseUnit.slot} units={[previewAdsenseUnit]} />
+                    </div>
+
+                    <div className="text-[10px] text-gray-400 font-mono bg-white/[0.02] p-3 rounded-lg border border-white/5 space-y-1">
+                      <span className="text-gray-300 font-bold block">Raw Ad Code:</span>
+                      <pre className="whitespace-pre-wrap break-all text-[9px] text-amber-300/80 max-h-24 overflow-y-auto">{previewAdsenseUnit.adCode}</pre>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION 3: GLOBAL PUBLISHER SCRIPT (OPTIONAL GLOBAL AUTO-ADS) */}
+              <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
+                <div className="border-b border-white/5 pb-2">
+                  <h3 className="text-xs font-display font-black text-white uppercase tracking-wider">Global Publisher Auto-Ads Header Script (Optional)</h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Paste your global Google AdSense head script (e.g., <code className="text-amber-400">adsbygoogle.js?client=ca-pub-XXX</code>) if you also use Auto-Ads.</p>
+                </div>
+
+                <form onSubmit={handleSaveAdsenseCode} className="space-y-4">
+                  <textarea
+                    rows={4}
+                    value={settingsForm.adsenseCode || ''}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, adsenseCode: e.target.value })}
+                    placeholder="<script async src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1234567890123456' crossorigin='anonymous'></script>"
+                    className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white font-mono text-[11px] h-24 focus:border-amber-500/50 focus:outline-none"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-6 py-2.5 bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-gray-200 hover:text-amber-400 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer"
+                    >
+                      {isLoading ? "SAVING..." : "SAVE GLOBAL PUBLISHER SCRIPT"}
                     </button>
                   </div>
                 </form>

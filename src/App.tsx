@@ -5,7 +5,7 @@ import {
   Download, FileText, ChevronDown, RefreshCw, AlertTriangle, Play, Radio, Video,
   ShieldCheck
 } from 'lucide-react';
-import { ContentPost, SiteSettings, ActivePage, VideoItem, HomeSection, FooterColumn, CustomSocialLink, Advertisement } from './types';
+import { ContentPost, SiteSettings, ActivePage, VideoItem, HomeSection, FooterColumn, CustomSocialLink, Advertisement, AdSenseUnit } from './types';
 import { db } from './lib/firebase';
 import { ref, onValue, push, set, runTransaction } from 'firebase/database';
 import BackgroundEffect from './components/BackgroundEffect';
@@ -14,6 +14,7 @@ import AdminPanel from './components/AdminPanel';
 import ContentDetails from './components/ContentDetails';
 import { DynamicPageRenderer } from './components/LegalPages';
 import AdPlacement, { UniversalAdRenderer } from './components/AdPlacement';
+import AdSensePlacement from './components/AdSensePlacement';
 import { compileActiveSocialLinks, getSocialSvgIcon } from './lib/socialUtils';
 import ContentCard from './components/ContentCard';
 import { NativeAdCard } from './components/NativeAdCard';
@@ -337,6 +338,7 @@ export default function App() {
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [ads, setAds] = useState<Advertisement[]>([]);
+  const [adsenseUnits, setAdsenseUnits] = useState<AdSenseUnit[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [postsLoading, setPostsLoading] = useState(true);
 
@@ -599,11 +601,27 @@ export default function App() {
       }
     });
 
+    // Listen for custom AdSense Units
+    const adsenseUnitsRef = ref(db, 'adsense_units');
+    const unsubAdsense = onValue(adsenseUnitsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const list = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        })) as AdSenseUnit[];
+        setAdsenseUnits(list);
+      } else {
+        setAdsenseUnits([]);
+      }
+    });
+
     return () => {
       unsubSettings();
       unsubPosts();
       unsubVideos();
       unsubAds();
+      unsubAdsense();
     };
   }, []);
 
@@ -1033,6 +1051,7 @@ export default function App() {
           {/* VIEW: HOMEPAGE (HOME) */}
           {activePage === 'home' && (
             <div className="space-y-24 animate-fade-in pt-4">
+              <AdSensePlacement slot="homepage_top" units={adsenseUnits} />
               
               {/* LOOP THROUGH HOME BUILDER SECTIONS SORTED DYNAMICALLY */}
               {(() => {
@@ -1143,6 +1162,7 @@ export default function App() {
                           )}
                         </section>
                         <AdPlacement position="homepage_latest_content_bottom" ads={ads} />
+                        <AdSensePlacement slot="homepage_middle" units={adsenseUnits} />
                         </React.Fragment>
                       );
 
@@ -1206,6 +1226,7 @@ export default function App() {
                       if (videos.length === 0) return null;
                       return (
                         <React.Fragment key={sec.id}>
+                          <AdSensePlacement slot="video_top" units={adsenseUnits} />
                           <AdPlacement position="video_top" ads={ads} />
                           <section className="max-w-7xl mx-auto px-4 md:px-8 space-y-8">
                             <div className="border-b border-cyber-cyan/15 pb-4">
@@ -1257,6 +1278,7 @@ export default function App() {
                               ))}
                             </div>
                           </section>
+                          <AdSensePlacement slot="video_bottom" units={adsenseUnits} />
                           <AdPlacement position="video_bottom" ads={ads} />
                         </React.Fragment>
                       );
@@ -1556,6 +1578,7 @@ export default function App() {
                 });
               })()}
 
+              <AdSensePlacement slot="homepage_bottom" units={adsenseUnits} />
               <AdPlacement position="homepage_bottom" ads={ads} />
 
             </div>
@@ -1565,8 +1588,8 @@ export default function App() {
           {(activePage === 'content' || activePage === 'blogs' || activePage === 'mods' || activePage === 'upcoming') && (
             <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-10 animate-fade-in pt-6">
               
-              {activePage === 'blogs' && <AdPlacement position="blog_top" ads={ads} />}
-              {activePage === 'mods' && <AdPlacement position="mods_top" ads={ads} />}
+              {activePage === 'blogs' && <><AdSensePlacement slot="blog_top" units={adsenseUnits} /><AdPlacement position="blog_top" ads={ads} /></>}
+              {activePage === 'mods' && <><AdSensePlacement slot="mod_top" units={adsenseUnits} /><AdPlacement position="mods_top" ads={ads} /></>}
               
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-white/5 pb-6">
                 <div>
@@ -1769,6 +1792,7 @@ export default function App() {
 
         <AdPlacement position="homepage_footer_top" ads={ads} />
         <AdPlacement position="footer_banner" ads={ads} />
+        <AdSensePlacement slot="footer" units={adsenseUnits} />
       </div>
 
       {/* FOOTER WIDGET */}
@@ -1906,6 +1930,7 @@ export default function App() {
           }}
           onActionClick={handleActionClick}
           ads={ads}
+          adsenseUnits={adsenseUnits}
         />
       )}
 
