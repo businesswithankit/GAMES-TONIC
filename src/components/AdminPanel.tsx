@@ -5360,34 +5360,100 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
             <div className="space-y-8 animate-fade-in max-w-5xl text-xs font-sans">
               
               {/* HEADER INFO */}
-              <div>
-                <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Google AdSense Integration</h2>
-                <p className="text-xs text-gray-400 mt-1">Integrate Google AdSense auto-ads or responsive ad units across the entire platform. Paste your AdSense publisher script or header tag to automatically synchronize.</p>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.01] border border-white/5 p-6 rounded-2xl">
+                <div>
+                  <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Google AdSense Integration & Ad Defeater Engine</h2>
+                  <p className="text-xs text-gray-400 mt-1">Manage global Google AdSense Auto-Ads, responsive ad unit codes, and universal AdBlocker bypass protection across the entire site.</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-3 py-1.5 bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan font-mono text-[10px] font-bold uppercase rounded-lg flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,240,255,0.2)]">
+                    <span className="w-2 h-2 rounded-full bg-cyber-cyan animate-ping" />
+                    AD DEFEATER: ACTIVE
+                  </span>
+                </div>
               </div>
 
               {/* ADSENSE SCRIPT CODE CONFIGURATOR */}
-              <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
-                  <h3 className="text-xs font-display font-black text-white uppercase tracking-wider">AdSense Publisher Code</h3>
-                  <span className="text-[9px] uppercase text-amber-500 font-bold font-mono">Verified Google AdSense Partner</span>
+              <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-display font-black text-white uppercase tracking-wider">AdSense Publisher Code</h3>
+                    {(() => {
+                      const match = (settingsForm.adsenseCode || '').match(/(ca-pub-\d+|pub-\d+)/i);
+                      if (match) {
+                        const id = match[0].startsWith('pub-') ? `ca-${match[0]}` : match[0];
+                        return (
+                          <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold rounded">
+                            DETECTED CLIENT: {id}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="px-2 py-0.5 bg-gray-800 text-gray-400 font-mono text-[10px] rounded">
+                          NO CLIENT ID DETECTED YET
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <span className="text-[9px] uppercase text-amber-500 font-bold font-mono">Verified AdSense Partner Suite</span>
+                </div>
+
+                {/* PRESET GENERATOR BUTTONS */}
+                <div className="space-y-2">
+                  <label className="block text-[10px] uppercase text-gray-400 font-bold font-mono">Quick Preset Inserters</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sample = `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1234567890123456" crossorigin="anonymous"></script>`;
+                        setSettingsForm({ ...settingsForm, adsenseCode: sample });
+                      }}
+                      className="px-3 py-1.5 bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-gray-300 hover:text-amber-400 text-[10px] font-mono rounded-lg transition-all cursor-pointer"
+                    >
+                      + Insert Auto-Ads Header Tag
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sample = `<ins class="adsbygoogle"\n  style="display:block"\n  data-ad-client="ca-pub-1234567890123456"\n  data-ad-slot="9876543210"\n  data-ad-format="auto"\n  data-full-width-responsive="true"></ins>\n<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>`;
+                        setSettingsForm({ ...settingsForm, adsenseCode: (settingsForm.adsenseCode ? settingsForm.adsenseCode + '\n\n' : '') + sample });
+                      }}
+                      className="px-3 py-1.5 bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-gray-300 hover:text-amber-400 text-[10px] font-mono rounded-lg transition-all cursor-pointer"
+                    >
+                      + Append Responsive Banner Code
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsForm({ ...settingsForm, adsenseCode: '' })}
+                      className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-[10px] font-mono rounded-lg transition-all cursor-pointer ml-auto"
+                    >
+                      Clear Code
+                    </button>
+                  </div>
                 </div>
 
                 <form onSubmit={handleSaveAdsenseCode} className="space-y-4">
                   <div className="space-y-1">
                     <label className="block text-[10px] uppercase text-gray-400 font-bold font-mono">Google AdSense Head Script or Ad Unit Code</label>
-                    <span className="block text-[9px] text-gray-500 mb-2">Paste the complete script tag (typically containing adsbygoogle.js and your client ca-pub-xxx ID) provided by Google AdSense.</span>
+                    <span className="block text-[9px] text-gray-500 mb-2">Paste your client ca-pub ID or complete AdSense script block. The engine automatically handles deferred initialization & AdBlock bypass.</span>
                     <textarea
-                      rows={12}
+                      rows={10}
                       value={settingsForm.adsenseCode || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, adsenseCode: e.target.value })}
-                      placeholder="<!-- Paste your Google AdSense code here (e.g., <script async src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js...'></script>) -->"
-                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white font-mono text-[11px] h-60 focus:border-amber-500/50 focus:outline-none"
+                      placeholder="<!-- Paste your Google AdSense publisher code or client ca-pub ID here -->"
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white font-mono text-[11px] h-52 focus:border-amber-500/50 focus:outline-none"
                     />
                   </div>
 
-                  <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                    <p className="text-[10px] text-amber-400 font-bold uppercase mb-1">💡 Integration Advice</p>
-                    <p className="text-[9px] text-gray-400 leading-relaxed">Once you paste and save this code, the platform will automatically inject the publisher script globally into all pages. Google Auto Ads will crawl the layout and insert responsive ad units in optimized slots automatically, with zero manual placement required.</p>
+                  <div className="p-4 bg-amber-500/5 border border-amber-500/15 rounded-xl space-y-2">
+                    <p className="text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1.5">
+                      <span>💡</span> Ad Defeater Protection Features
+                    </p>
+                    <ul className="text-[10px] text-gray-400 space-y-1.5 list-disc list-inside leading-relaxed font-sans">
+                      <li><strong>Auto Client ID Detection:</strong> Extracts your <code className="text-amber-400 font-mono">ca-pub-XXX</code> identifier and automatically binds the Google Publisher JS SDK.</li>
+                      <li><strong>AdBlocker Bypass Engine:</strong> If a visitor uses an AdBlocker (uBlock, AdGuard, Brave Shields) or if script network requests fail, all ad slots gracefully fallback to self-hosted sponsor banners instead of breaking or leaving empty layout gaps.</li>
+                      <li><strong>Deferred Layout Pushing:</strong> Ensures AdSense <code className="text-amber-400 font-mono">adsbygoogle.push(&#123;&#125;)</code> executes only after elements are mounted to prevent zero-width calculation errors.</li>
+                    </ul>
                   </div>
 
                   <div className="flex justify-end pt-2">

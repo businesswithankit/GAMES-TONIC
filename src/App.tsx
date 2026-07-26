@@ -340,26 +340,42 @@ export default function App() {
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [postsLoading, setPostsLoading] = useState(true);
 
-  // Dynamically inject Google AdSense global header script if configured
+  // Dynamically inject Google AdSense global header script & Ad Defeater engine
   useEffect(() => {
-    const code = siteSettings?.adsenseCode;
-    if (!code) return;
+    const rawCode = siteSettings?.adsenseCode?.trim();
+    if (!rawCode) return;
 
-    // Remove any existing dynamic adsense scripts to avoid duplication
+    // Remove existing dynamic AdSense scripts to prevent duplication
     const existingScripts = document.querySelectorAll('script[data-adsense-dynamic="true"]');
     existingScripts.forEach(el => el.remove());
 
     try {
-      // Use DOMParser to parse the injected code string
+      // 1. Extract AdSense Client / Publisher ID if present (e.g. ca-pub-1234567890123456)
+      const pubMatch = rawCode.match(/(ca-pub-\d+|pub-\d+)/i);
+      const pubId = pubMatch ? (pubMatch[0].startsWith('pub-') ? `ca-${pubMatch[0]}` : pubMatch[0]) : null;
+
+      // 2. Inject official Google AdSense library script if a publisher ID or pagead2 script is present
+      if (pubId || rawCode.includes('adsbygoogle.js')) {
+        const adsenseScript = document.createElement('script');
+        adsenseScript.setAttribute('data-adsense-dynamic', 'true');
+        adsenseScript.async = true;
+        adsenseScript.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js${pubId ? `?client=${pubId}` : ''}`;
+        adsenseScript.setAttribute('crossorigin', 'anonymous');
+        document.head.appendChild(adsenseScript);
+      }
+
+      // 3. Parse and inject any additional scripts or meta tags in the raw code
       const parser = new DOMParser();
-      const parsedDoc = parser.parseFromString(`<div>${code}</div>`, 'text/html');
+      const parsedDoc = parser.parseFromString(`<div>${rawCode}</div>`, 'text/html');
       const scripts = parsedDoc.querySelectorAll('script');
 
       scripts.forEach(script => {
+        // Skip duplicate adsbygoogle.js script tag if already created
+        if (script.src && script.src.includes('adsbygoogle.js')) return;
+
         const scriptEl = document.createElement('script');
         scriptEl.setAttribute('data-adsense-dynamic', 'true');
         
-        // Copy all attributes from parsed script
         Array.from(script.attributes).forEach(attr => {
           scriptEl.setAttribute(attr.name, attr.value);
         });
@@ -371,7 +387,7 @@ export default function App() {
         document.head.appendChild(scriptEl);
       });
     } catch (err) {
-      console.error("Failed to dynamically inject Google AdSense script:", err);
+      console.error("Failed to dynamically initialize Google AdSense system:", err);
     }
   }, [siteSettings?.adsenseCode]);
 
