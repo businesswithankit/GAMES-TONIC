@@ -279,6 +279,36 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<ContentPost | null>(null);
 
+  // Triple click footer to open admin login panel
+  const footerClickCountRef = useRef(0);
+  const footerClickTimerRef = useRef<any>(null);
+
+  const handleFooterTripleClick = (e: React.MouseEvent) => {
+    // Standard DOM detail check (native triple click) or manual 3-click counter
+    if (e.detail >= 3) {
+      setActivePage('admin');
+      setAdminOpen(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      footerClickCountRef.current = 0;
+      return;
+    }
+
+    footerClickCountRef.current += 1;
+    if (footerClickCountRef.current >= 3) {
+      setActivePage('admin');
+      setAdminOpen(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      footerClickCountRef.current = 0;
+      if (footerClickTimerRef.current) clearTimeout(footerClickTimerRef.current);
+      return;
+    }
+
+    if (footerClickTimerRef.current) clearTimeout(footerClickTimerRef.current);
+    footerClickTimerRef.current = setTimeout(() => {
+      footerClickCountRef.current = 0;
+    }, 1200);
+  };
+
   // Parse Pathname Routing for standalone /admin or /admin-panel entries
   useEffect(() => {
     const checkPathnameAndHash = () => {
@@ -1726,7 +1756,7 @@ export default function App() {
       </div>
 
       {/* FOOTER WIDGET */}
-      <footer className="bg-black/95 border-t border-white/10 pt-16 pb-8 transition-all relative shrink-0">
+      <footer onClick={handleFooterTripleClick} className="bg-black/95 border-t border-white/10 pt-16 pb-8 transition-all relative shrink-0 cursor-pointer">
         <div className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           
           {/* Col 1 */}
@@ -1759,7 +1789,7 @@ export default function App() {
                   {col.links && col.links.map((link, idx) => (
                     <button
                       key={idx}
-                      onClick={() => handleActionClick(link.url, !!link.openInNewTab)}
+                      onClick={(e) => { e.stopPropagation(); handleActionClick(link.url, !!link.openInNewTab); }}
                       className="hover:text-cyber-cyan transition-colors cursor-pointer text-left uppercase border-b border-white/0 hover:border-cyber-cyan/30 pb-0.5 max-w-max"
                     >
                       {link.label}
@@ -1789,6 +1819,7 @@ export default function App() {
                         target="_blank"
                         rel="noopener noreferrer"
                         title={sl.rawPlatform}
+                        onClick={(e) => e.stopPropagation()}
                         className="p-2.5 border border-white/10 hover:border-cyber-cyan bg-white/[0.02] hover:bg-cyber-cyan/10 rounded-lg text-gray-400 hover:text-cyber-cyan transition-all text-xs flex items-center justify-center min-w-9 min-h-9 cursor-pointer"
                       >
                         {getSocialSvgIcon(sl.platform, "w-4 h-4")}
@@ -1797,9 +1828,9 @@ export default function App() {
                   }
                   return (
                     <>
-                      <a href="https://youtube.com" className="p-2.5 border border-white/10 hover:border-cyber-cyan bg-white/[0.02] hover:bg-cyber-cyan/10 rounded-lg text-gray-400 hover:text-cyber-cyan min-w-9 min-h-9 flex items-center justify-center text-xs" target="_blank" rel="noopener noreferrer">{getSocialSvgIcon("youtube", "w-4 h-4")}</a>
-                      <a href="https://discord.gg" className="p-2.5 border border-white/10 hover:border-cyber-cyan bg-white/[0.02] hover:bg-cyber-cyan/10 rounded-lg text-gray-400 hover:text-cyber-cyan min-w-9 min-h-9 flex items-center justify-center text-xs" target="_blank" rel="noopener noreferrer">{getSocialSvgIcon("discord", "w-4 h-4")}</a>
-                      <a href="https://telegram.org" className="p-2.5 border border-white/10 hover:border-cyber-cyan bg-white/[0.02] hover:bg-cyber-cyan/10 rounded-lg text-gray-400 hover:text-cyber-cyan min-w-9 min-h-9 flex items-center justify-center text-xs" target="_blank" rel="noopener noreferrer">{getSocialSvgIcon("telegram", "w-4 h-4")}</a>
+                      <a href="https://youtube.com" onClick={(e) => e.stopPropagation()} className="p-2.5 border border-white/10 hover:border-cyber-cyan bg-white/[0.02] hover:bg-cyber-cyan/10 rounded-lg text-gray-400 hover:text-cyber-cyan min-w-9 min-h-9 flex items-center justify-center text-xs" target="_blank" rel="noopener noreferrer">{getSocialSvgIcon("youtube", "w-4 h-4")}</a>
+                      <a href="https://discord.gg" onClick={(e) => e.stopPropagation()} className="p-2.5 border border-white/10 hover:border-cyber-cyan bg-white/[0.02] hover:bg-cyber-cyan/10 rounded-lg text-gray-400 hover:text-cyber-cyan min-w-9 min-h-9 flex items-center justify-center text-xs" target="_blank" rel="noopener noreferrer">{getSocialSvgIcon("discord", "w-4 h-4")}</a>
+                      <a href="https://telegram.org" onClick={(e) => e.stopPropagation()} className="p-2.5 border border-white/10 hover:border-cyber-cyan bg-white/[0.02] hover:bg-cyber-cyan/10 rounded-lg text-gray-400 hover:text-cyber-cyan min-w-9 min-h-9 flex items-center justify-center text-xs" target="_blank" rel="noopener noreferrer">{getSocialSvgIcon("telegram", "w-4 h-4")}</a>
                     </>
                   );
                 })()}
@@ -1813,17 +1844,9 @@ export default function App() {
         <div className="border-t border-white/5 pt-8 max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 font-sans text-xs text-gray-500">
           <p className="uppercase">{siteSettings.footer?.copyright || '© GAMES TONIC OFFICIAL OPERATIVE. ALL MODIFICATIONS REGISTERED STANDARDS.'}</p>
           <div className="flex flex-wrap items-center gap-4 font-bold">
-            <button onClick={() => { setActivePage('privacy'); window.scrollTo(0,0); }} className="hover:text-white transition cursor-pointer">PRIVACY</button>
+            <button onClick={(e) => { e.stopPropagation(); setActivePage('privacy'); window.scrollTo(0,0); }} className="hover:text-white transition cursor-pointer">PRIVACY</button>
             <span>•</span>
-            <button onClick={() => { setActivePage('terms'); window.scrollTo(0,0); }} className="hover:text-white transition cursor-pointer">TERMS</button>
-            <span>•</span>
-            <button 
-              onClick={() => { setActivePage('admin'); setAdminOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-              className="px-3 py-1 bg-cyber-cyan/10 hover:bg-cyber-cyan/25 border border-cyber-cyan/40 hover:border-cyber-cyan text-cyber-cyan hover:text-white rounded-lg transition-all text-[11px] font-mono font-bold tracking-wider cursor-pointer uppercase flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,240,255,0.2)]"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-cyber-cyan" />
-              <span>Admin</span>
-            </button>
+            <button onClick={(e) => { e.stopPropagation(); setActivePage('terms'); window.scrollTo(0,0); }} className="hover:text-white transition cursor-pointer">TERMS</button>
           </div>
         </div>
       </footer>
