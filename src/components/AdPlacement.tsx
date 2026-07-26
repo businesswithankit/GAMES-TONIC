@@ -286,37 +286,7 @@ export default function AdPlacement({ position, ads, className = '' }: AdPlaceme
       );
     }
 
-    // Default High-Tech Cyber Sponsor Dispatch (Guarantees no empty gap!)
-    return (
-      <a 
-        href="#sponsors" 
-        onClick={(e) => {
-          e.preventDefault();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        className="block w-full py-4 px-6 bg-gradient-to-r from-cyber-dark via-black/80 to-cyber-dark border border-cyber-cyan/30 hover:border-cyber-cyan rounded-xl transition-all duration-300 relative group overflow-hidden shadow-[0_0_15px_rgba(0,240,255,0.08)]"
-      >
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan font-mono font-bold text-[9px] uppercase tracking-wider rounded">
-                GAMES TONIC DISPATCH
-              </span>
-              <span className="text-[9px] text-gray-500 font-mono uppercase">PARTNER DISPATCH NETWORK</span>
-            </div>
-            <h4 className="font-display font-black text-white text-xs md:text-sm uppercase tracking-wider group-hover:text-cyber-cyan transition-colors">
-              VERIFIED MODS & HIGH-SPEED DOWNLOADS
-            </h4>
-            <p className="text-[10px] text-gray-400 font-sans">
-              Access official game modifications, standalone tools & game intelligence directly.
-            </p>
-          </div>
-          <span className="px-4 py-2 bg-gradient-to-r from-cyber-cyan to-cyber-purple text-black font-display font-black text-[10px] uppercase tracking-wider rounded-lg shrink-0 group-hover:brightness-125 transition-all">
-            EXPLORE MOD INDEX
-          </span>
-        </div>
-      </a>
-    );
+    return null;
   };
 
   const renderAdContent = () => {
@@ -374,6 +344,11 @@ export default function AdPlacement({ position, ads, className = '' }: AdPlaceme
     return renderAdDefeaterFallback();
   };
 
+  const adContentNode = renderAdContent();
+  if (!adContentNode) {
+    return null;
+  }
+
   return (
     <SafeAdBoundary onAdCrash={handleAdError}>
       <div 
@@ -384,7 +359,7 @@ export default function AdPlacement({ position, ads, className = '' }: AdPlaceme
           - SPONSORED DISPATCH -
         </span>
         <div className="w-full h-full flex justify-center items-center bg-white/[0.01] hover:bg-white/[0.02] transition-colors border border-dashed border-white/5 p-1 rounded-xl">
-          {renderAdContent()}
+          {adContentNode}
         </div>
       </div>
     </SafeAdBoundary>
