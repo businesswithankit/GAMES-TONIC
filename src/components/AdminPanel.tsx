@@ -588,7 +588,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     }
   }, [selectedButtonKey, settingsForm]);
 
-  // Handle Login & Sign Up
+  // Handle Login & Sign Up seamlessly
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -602,18 +602,25 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     }
     setAuthLoading(true);
     try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
+      try {
         await signInWithEmailAndPassword(auth, email, password);
+      } catch (signInErr: any) {
+        if (
+          signInErr.code === 'auth/user-not-found' || 
+          signInErr.code === 'auth/invalid-credential' ||
+          signInErr.code === 'auth/invalid-email'
+        ) {
+          // If user does not exist yet, automatically attempt creation
+          await createUserWithEmailAndPassword(auth, email, password);
+        } else {
+          throw signInErr;
+        }
       }
     } catch (err: any) {
       console.error("Firebase auth process error:", err);
       let msg = err.message || "Authentication error.";
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        msg = "Invalid email or password. If you do not have an account yet, switch to 'Register Admin' above.";
-      } else if (err.code === 'auth/email-already-in-use') {
-        msg = "An account with this email already exists. Switch to 'Sign In' to authorize your session.";
+      if (err.code === 'auth/wrong-password') {
+        msg = "Invalid password entered for this admin account.";
       } else if (err.code === 'auth/weak-password') {
         msg = "Password should be at least 6 characters.";
       }
@@ -1723,7 +1730,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
             Terminal Exit
           </button>
           
-          <div className="text-center space-y-2 mb-6 mt-2">
+          <div className="text-center space-y-2 mb-8 mt-2">
             <div className="inline-flex p-3 bg-cyber-cyan/5 rounded-full border border-cyber-cyan/20 text-cyber-cyan animate-pulse">
               <Laptop className="w-6 h-6 " />
             </div>
@@ -1731,32 +1738,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
               ADMINISTRATIVE TERMINAL
             </h1>
             <p className="text-[10px] text-cyber-cyan font-mono tracking-widest uppercase">FIREBASE AUTHENTICATION ROUTING</p>
-          </div>
-
-          {/* Mode Switcher */}
-          <div className="flex bg-black/60 p-1 rounded-xl border border-white/10 mb-6 text-xs font-mono">
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(false); setError(null); }}
-              className={`flex-1 py-2 rounded-lg font-bold uppercase transition-all cursor-pointer ${
-                !isSignUp 
-                  ? 'bg-cyber-cyan text-black shadow-[0_0_12px_rgba(0,240,255,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(true); setError(null); }}
-              className={`flex-1 py-2 rounded-lg font-bold uppercase transition-all cursor-pointer ${
-                isSignUp 
-                  ? 'bg-cyber-cyan text-black shadow-[0_0_12px_rgba(0,240,255,0.3)]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Register Admin
-            </button>
           </div>
 
           {error && (
@@ -1796,12 +1777,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
               disabled={authLoading}
               className="w-full mt-4 py-3.5 bg-gradient-to-r from-cyber-cyan via-cyber-purple to-cyber-magenta text-black font-display font-black uppercase text-xs tracking-widest rounded-xl hover:brightness-125 hover:shadow-[0_0_24px_rgba(0,240,255,0.4)] transition-all cursor-pointer shadow-lg disabled:opacity-50"
             >
-              {authLoading 
-                ? 'Authenticating...' 
-                : isSignUp 
-                  ? 'Create Admin Account & Log In' 
-                  : 'Authorize Security Session'
-              }
+              {authLoading ? 'Authenticating...' : 'Authorize Security Session'}
             </button>
           </form>
         </div>
