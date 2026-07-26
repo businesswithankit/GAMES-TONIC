@@ -76,6 +76,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -587,17 +588,39 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     }
   }, [selectedButtonKey, settingsForm]);
 
-  // Handle Login
+  // Handle Login & Sign Up
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!email || !password) {
+      setError("Please provide both email and password.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
     setAuthLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
     } catch (err: any) {
-      setError(err.message || "Invalid Admin Credentials.");
+      console.error("Firebase auth process error:", err);
+      let msg = err.message || "Authentication error.";
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        msg = "Invalid email or password. If you do not have an account yet, switch to 'Register Admin' above.";
+      } else if (err.code === 'auth/email-already-in-use') {
+        msg = "An account with this email already exists. Switch to 'Sign In' to authorize your session.";
+      } else if (err.code === 'auth/weak-password') {
+        msg = "Password should be at least 6 characters.";
+      }
+      setError(msg);
+    } finally {
+      setAuthLoading(false);
     }
-    setAuthLoading(false);
   };
 
   const handleLogout = async () => {
@@ -1691,23 +1714,49 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
         {/* Abstract cyber visual asset backdrop */}
         <div className="absolute inset-x-0 top-1/4 h-72 bg-gradient-to-r from-cyber-cyan/10 via-transparent to-cyber-magenta/10 select-none pointer-events-none blur-3xl" />
         
-        <div className="w-full max-w-md bg-cyber-dark/80 backdrop-blur-2xl p-8 rounded-2xl border border-cyber-cyan/30 shadow-[0_0_50px_rgba(0,240,255,0.15)] relative overflow-hidden transition-all duration-300">
+        <div className="w-full max-w-md bg-cyber-dark/90 backdrop-blur-2xl p-8 rounded-2xl border border-cyber-cyan/30 shadow-[0_0_50px_rgba(0,240,255,0.15)] relative overflow-hidden transition-all duration-300">
           <button 
             type="button" 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-[10px] uppercase font-display text-gray-500 hover:text-white border border-white/5 bg-white/5 hover:border-cyber-cyan/30 px-3 py-1.5 rounded-lg transition-all"
+            className="absolute top-4 right-4 text-[10px] uppercase font-display text-gray-500 hover:text-white border border-white/5 bg-white/5 hover:border-cyber-cyan/30 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
           >
             Terminal Exit
           </button>
           
-          <div className="text-center space-y-2 mb-8 mt-4">
+          <div className="text-center space-y-2 mb-6 mt-2">
             <div className="inline-flex p-3 bg-cyber-cyan/5 rounded-full border border-cyber-cyan/20 text-cyber-cyan animate-pulse">
               <Laptop className="w-6 h-6 " />
             </div>
             <h1 className="text-2xl md:text-3xl font-display font-black text-white tracking-[0.15em] text-glow uppercase leading-none">
-              SECURITY CREDENTIALS
+              ADMINISTRATIVE TERMINAL
             </h1>
-            <p className="text-[10px] text-cyber-cyan font-mono tracking-widest uppercase">GAMES TONIC ADMINISTRATION ROUTING</p>
+            <p className="text-[10px] text-cyber-cyan font-mono tracking-widest uppercase">FIREBASE AUTHENTICATION ROUTING</p>
+          </div>
+
+          {/* Mode Switcher */}
+          <div className="flex bg-black/60 p-1 rounded-xl border border-white/10 mb-6 text-xs font-mono">
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(false); setError(null); }}
+              className={`flex-1 py-2 rounded-lg font-bold uppercase transition-all cursor-pointer ${
+                !isSignUp 
+                  ? 'bg-cyber-cyan text-black shadow-[0_0_12px_rgba(0,240,255,0.3)]' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(true); setError(null); }}
+              className={`flex-1 py-2 rounded-lg font-bold uppercase transition-all cursor-pointer ${
+                isSignUp 
+                  ? 'bg-cyber-cyan text-black shadow-[0_0_12px_rgba(0,240,255,0.3)]' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Register Admin
+            </button>
           </div>
 
           {error && (
@@ -1719,19 +1768,19 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
 
           <form onSubmit={handleLogin} className="space-y-4 font-sans text-sm">
             <div>
-              <label className="block text-[10px] uppercase text-gray-400 tracking-wider mb-2 font-display font-bold">Uplink Profile Email</label>
+              <label className="block text-[10px] uppercase text-gray-400 tracking-wider mb-2 font-display font-bold">Admin Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
+                placeholder="admin@gamestonicofficial.com"
                 className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-cyber-cyan focus:shadow-[0_0_12px_rgba(0,240,255,0.25)] transition-all font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase text-gray-400 tracking-wider mb-2 font-display font-bold">Secure Verification Key</label>
+              <label className="block text-[10px] uppercase text-gray-400 tracking-wider mb-2 font-display font-bold">Password</label>
               <input
                 type="password"
                 required
@@ -1744,9 +1793,15 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
 
             <button
               type="submit"
-              className="w-full mt-4 py-3.5 bg-gradient-to-r from-cyber-cyan via-cyber-purple to-cyber-magenta text-black font-display font-black uppercase text-xs tracking-widest rounded-xl hover:brightness-125 hover:shadow-[0_0_24px_rgba(0,240,255,0.4)] transition-all cursor-pointer shadow-lg"
+              disabled={authLoading}
+              className="w-full mt-4 py-3.5 bg-gradient-to-r from-cyber-cyan via-cyber-purple to-cyber-magenta text-black font-display font-black uppercase text-xs tracking-widest rounded-xl hover:brightness-125 hover:shadow-[0_0_24px_rgba(0,240,255,0.4)] transition-all cursor-pointer shadow-lg disabled:opacity-50"
             >
-              Authorize Security Session
+              {authLoading 
+                ? 'Authenticating...' 
+                : isSignUp 
+                  ? 'Create Admin Account & Log In' 
+                  : 'Authorize Security Session'
+              }
             </button>
           </form>
         </div>

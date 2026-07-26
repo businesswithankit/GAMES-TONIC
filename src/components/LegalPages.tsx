@@ -424,7 +424,7 @@ export function SupportPage({ onBack, siteSettings }: { onBack: () => void; site
             If you cannot find an answer or need help with a custom mod indexing, dispatch a correspondence directly to our compliance teams.
           </p>
           <div className="inline-flex items-center gap-2 text-cyber-cyan font-bold font-display text-xs tracking-wider">
-            SECURE EMAIL: {siteSettings.contactPage?.email || 'operations@gamestonic.com'}
+            SECURE EMAIL: {siteSettings.contactPage?.email || 'operations@gamestonicofficial.com'}
           </div>
         </section>
       </div>

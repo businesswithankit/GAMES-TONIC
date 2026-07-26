@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowRight, Search, SlidersHorizontal, Gamepad2, Sparkles, Flame, Eye,
   Calendar, Layers, CheckCircle, ChevronRight, Mail, Users, Monitor,
-  Download, FileText, ChevronDown, RefreshCw, AlertTriangle, Play, Radio, Video
+  Download, FileText, ChevronDown, RefreshCw, AlertTriangle, Play, Radio, Video,
+  ShieldCheck
 } from 'lucide-react';
 import { ContentPost, SiteSettings, ActivePage, VideoItem, HomeSection, FooterColumn, CustomSocialLink, Advertisement } from './types';
 import { db } from './lib/firebase';
@@ -20,16 +21,16 @@ import { StickyAdBanner } from './components/StickyAdBanner';
 
 // Default Fallback Settings if Realtime DB doesn't have settings stored yet
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
-  siteName: "GAMES TONIC",
+  siteName: "GAMES TONIC OFFICIAL",
   siteTagline: "Next-Gen Modification Index & Cyber Intelligence",
   siteDescription: "Discover advanced gaming enhancements, utility scripts, and real-time community dispatches.",
   logoUrl: "",
   faviconUrl: "",
   
-  metaTitle: "Games Tonic | Main Hub",
+  metaTitle: "Games Tonic Official | Main Hub",
   metaDescription: "All-in-one catalog for community game mods, trailers, and scripts. Fully dynamic.",
   metaKeywords: "games, mods, scripts, cheats, enhancements, trailers, cyberpunk, gaming",
-  browserTitle: "GAMES TONIC | OPERATIONS HUB",
+  browserTitle: "GAMES TONIC OFFICIAL | OPERATIONS HUB",
   
   announcementBar: {
     text: "🔥 ULTIMATE NEXT-GEN GAMING AND UTILITY SCRIPTS HUB CONNECTING DIRECTLY IN REALTIME",
@@ -107,9 +108,9 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
   legalPages: {},
   contactPage: {
     title: 'CONTACT DIRECTORY',
-    description: 'Have a proposal, issues, or want to sponsor Games Tonic? Send a query securely.',
+    description: 'Have a proposal, issues, or want to sponsor Games Tonic Official? Send a query securely.',
     phone: '+1 (415) 301-4475',
-    email: 'operations@gamestonic.com',
+    email: 'operations@gamestonicofficial.com',
     address: 'Cyber Tower Suite 733, Digital Hub, US',
     mapEmbed: ''
   },
@@ -211,7 +212,7 @@ We do not collect sensitive credentials. We log anonymous view metrics to compil
 3. COOKIES & TRACKERS
 We run simple state parameters in cookies to remember your acknowledgment triggers.
 
-For complete compliance questions, query our direct inbox at: operations@gamestonic.com`
+For complete compliance questions, query our direct inbox at: operations@gamestonicofficial.com`
     },
     {
       id: 'p_terms',
@@ -254,7 +255,7 @@ Cookies cache your agreement state for the global notification banner. You can c
       position: 6,
       content: `To submit DMCA copyright expunges:
 
-Contact operations@gamestonic.com outlining the copyrighted files, registration details, and catalog link resources. Our security division reviews and clears disputed indexing files instantly.`
+Contact operations@gamestonicofficial.com outlining the copyrighted files, registration details, and catalog link resources. Our security division reviews and clears disputed indexing files instantly.`
     }
   ],
 
@@ -1810,11 +1811,19 @@ export default function App() {
 
         {/* Legal copyright footer */}
         <div className="border-t border-white/5 pt-8 max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 font-sans text-xs text-gray-500">
-          <p className="uppercase">{siteSettings.footer?.copyright || '© GAMES TONIC OPERATIVE. ALL MODIFICATIONS REGISTERED STANDARDS.'}</p>
-          <div className="flex gap-4 font-bold">
-            <button onClick={() => { setActivePage('privacy'); window.scrollTo(0,0); }} className="hover:text-white transition">PRIVACY</button>
+          <p className="uppercase">{siteSettings.footer?.copyright || '© GAMES TONIC OFFICIAL OPERATIVE. ALL MODIFICATIONS REGISTERED STANDARDS.'}</p>
+          <div className="flex flex-wrap items-center gap-4 font-bold">
+            <button onClick={() => { setActivePage('privacy'); window.scrollTo(0,0); }} className="hover:text-white transition cursor-pointer">PRIVACY</button>
             <span>•</span>
-            <button onClick={() => { setActivePage('terms'); window.scrollTo(0,0); }} className="hover:text-white transition">TERMS</button>
+            <button onClick={() => { setActivePage('terms'); window.scrollTo(0,0); }} className="hover:text-white transition cursor-pointer">TERMS</button>
+            <span>•</span>
+            <button 
+              onClick={() => { setActivePage('admin'); setAdminOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+              className="px-3 py-1 bg-cyber-cyan/10 hover:bg-cyber-cyan/25 border border-cyber-cyan/40 hover:border-cyber-cyan text-cyber-cyan hover:text-white rounded-lg transition-all text-[11px] font-mono font-bold tracking-wider cursor-pointer uppercase flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,240,255,0.2)]"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-cyber-cyan" />
+              <span>Admin</span>
+            </button>
           </div>
         </div>
       </footer>
