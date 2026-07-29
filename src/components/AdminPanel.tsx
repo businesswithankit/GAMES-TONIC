@@ -60,6 +60,7 @@ import {
 import { auth, db } from '../lib/firebase';
 import { ContentPost, SiteSettings, NavMenu, ActionButton, LegalPage, VideoItem, Advertisement, AdSenseUnit } from '../types';
 import AdSensePlacement, { ADSENSE_PREDEFINED_SLOTS } from './AdSensePlacement';
+import { generateAILegalContent } from '../lib/aiLegalGenerator';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -3091,99 +3092,112 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
           )}
 
           {/* TAB 9: EDIT LEGAL PAGES */}
-          {activeTab === 'legal' && (
-            <div className="space-y-6 animate-fade-in max-w-5xl">
-              <div>
-                <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Legal compliance document generator</h2>
-                <p className="text-xs text-gray-400 mt-1">Dynamically edit informational pages (Privacy, Terms, About, Contact, DMCA) on the fly.</p>
-              </div>
-
-              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1.5 font-bold">Select page template to customize</label>
-                <select
-                  value={selectedLegalKey}
-                  onChange={(e) => setSelectedLegalKey(e.target.value)}
-                  className="px-4 py-2 bg-black/60 border border-white/10 text-xs text-cyber-cyan font-bold rounded-xl focus:outline-none"
-                >
-                  <option value="privacy">Privacy Policy</option>
-                  <option value="terms">Terms & Conditions</option>
-                  <option value="disclaimer">Compliance Disclaimer</option>
-                  <option value="cookie">Cookie Policy</option>
-                  <option value="dmca">DMCA Guidelines</option>
-                  <option value="about">About Us Section</option>
-                  <option value="contact">Contact Directory Info</option>
-                  <option value="support">Help & Support Policy</option>
-                </select>
-              </div>
-
-              <form onSubmit={handleLegalSubmit} className="space-y-6 font-sans text-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">Page Title Heading</label>
-                    <input
-                      type="text"
-                      required
-                      value={legalForm.title}
-                      onChange={(e) => setLegalForm({ ...legalForm, title: e.target.value })}
-                      placeholder="e.g. PRIVACY POLICIES & SECURITY RULES"
-                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">Visibility Status Priority</label>
-                    <select
-                      value={legalForm.status || 'published'}
-                      onChange={(e) => setLegalForm({ ...legalForm, status: e.target.value as any })}
-                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl"
-                    >
-                      <option value="published">Live (Published)</option>
-                      <option value="draft">Invisible (Draft)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">SEO Title Headline Override</label>
-                    <input
-                      type="text"
-                      value={legalForm.seoTitle || ''}
-                      onChange={(e) => setLegalForm({ ...legalForm, seoTitle: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">SEO Brief Description Excerpt</label>
-                    <input
-                      type="text"
-                      value={legalForm.seoDescription || ''}
-                      onChange={(e) => setLegalForm({ ...legalForm, seoDescription: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
-
+          {activeTab === 'legal' && (() => {
+            const generatedDoc = generateAILegalContent(selectedLegalKey, settingsForm);
+            return (
+              <div className="space-y-6 animate-fade-in max-w-5xl">
                 <div>
-                  <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1.5 font-bold">Document content (Supports markdown/HTML markup)</label>
-                  <textarea
-                    rows={12}
-                    required
-                    value={legalForm.content}
-                    onChange={(e) => setLegalForm({ ...legalForm, content: e.target.value })}
-                    placeholder="Provide informational terms paragraphs..."
-                    className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl font-mono text-xs resize-none"
-                  />
+                  <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Legal compliance document generator</h2>
+                  <p className="text-xs text-gray-400 mt-1">AI Engine automatically generates compliant legal pages using your Site Settings parameters (Site Name, URL, Contact Email, etc.).</p>
                 </div>
 
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-gradient-to-r from-cyber-cyan to-cyber-purple text-black font-display font-black text-xs uppercase"
-                >
-                  SAVE LEGAL SPECIFICATIONS
-                </button>
-              </form>
-            </div>
-          )}
+                {/* AI Legal Engine Status Banner */}
+                <div className="p-4 bg-cyber-cyan/10 border border-cyber-cyan/30 rounded-xl space-y-2">
+                  <div className="flex items-center gap-2 text-cyber-cyan">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                    <span className="font-display font-bold text-xs uppercase tracking-wider">AI AUTOMATED LEGAL CONTENT GENERATION ACTIVE</span>
+                  </div>
+                  <p className="text-xs text-gray-300 font-sans leading-relaxed">
+                    Legal documents for <strong className="text-white">{settingsForm.siteName || 'Games Tonic'}</strong> are automatically compiled in real-time from your site configuration. Manual text editing has been disabled to preserve automated compliance synchronization.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                  <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1.5 font-bold">Select page template to inspect</label>
+                  <select
+                    value={selectedLegalKey}
+                    onChange={(e) => setSelectedLegalKey(e.target.value)}
+                    className="px-4 py-2 bg-black/60 border border-white/10 text-xs text-cyber-cyan font-bold rounded-xl focus:outline-none"
+                  >
+                    <option value="privacy">Privacy Policy</option>
+                    <option value="terms">Terms & Conditions</option>
+                    <option value="disclaimer">Compliance Disclaimer</option>
+                    <option value="cookie">Cookie Policy</option>
+                    <option value="dmca">DMCA Guidelines</option>
+                    <option value="about">About Us Section</option>
+                    <option value="contact">Contact Directory Info</option>
+                    <option value="support">Help & Support Policy</option>
+                  </select>
+                </div>
+
+                <form onSubmit={handleLegalSubmit} className="space-y-6 font-sans text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">Page Title Heading</label>
+                      <input
+                        type="text"
+                        required
+                        value={legalForm.title || generatedDoc.title}
+                        onChange={(e) => setLegalForm({ ...legalForm, title: e.target.value })}
+                        placeholder="e.g. PRIVACY POLICIES & SECURITY RULES"
+                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">Visibility Status Priority</label>
+                      <select
+                        value={legalForm.status || 'published'}
+                        onChange={(e) => setLegalForm({ ...legalForm, status: e.target.value as any })}
+                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl"
+                      >
+                        <option value="published">Live (Published)</option>
+                        <option value="draft">Invisible (Draft)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">SEO Title Headline Override</label>
+                      <input
+                        type="text"
+                        value={legalForm.seoTitle || generatedDoc.seoTitle}
+                        onChange={(e) => setLegalForm({ ...legalForm, seoTitle: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">SEO Brief Description Excerpt</label>
+                      <input
+                        type="text"
+                        value={legalForm.seoDescription || generatedDoc.seoDescription}
+                        onChange={(e) => setLegalForm({ ...legalForm, seoDescription: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* AI Generated Content Live Preview (Read-only) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[10px] uppercase font-mono text-cyber-cyan font-bold">Live AI-Generated Legal Document Preview</label>
+                      <span className="text-[10px] font-mono text-gray-400">Auto-compiled from Site Settings</span>
+                    </div>
+                    <div className="p-4 bg-black/80 border border-white/10 rounded-xl font-mono text-xs text-gray-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text">
+                      {generatedDoc.content}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-gradient-to-r from-cyber-cyan to-cyber-purple text-black font-display font-black text-xs uppercase cursor-pointer hover:brightness-125 rounded-lg transition-all"
+                  >
+                    SAVE LEGAL METADATA PARAMETERS
+                  </button>
+                </form>
+              </div>
+            );
+          })()}
 
           {/* TAB 10: HOME PAGE BUILDER */}
           {activeTab === 'home-builder' && (

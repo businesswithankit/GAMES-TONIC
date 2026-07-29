@@ -7,6 +7,7 @@ import { db } from '../lib/firebase';
 import { ref, push, set } from 'firebase/database';
 import { SiteSettings, CustomPage } from '../types';
 import { compileActiveSocialLinks, getSocialSvgIcon } from '../lib/socialUtils';
+import { generateAILegalContent } from '../lib/aiLegalGenerator';
 
 // Helper component to render multi-line text blocks nicely as formatted content or basic markdown
 const RenderBodyText = ({ content }: { content: string }) => {
@@ -38,16 +39,27 @@ interface UnifiedPageProps {
 }
 
 export function DynamicPageRenderer({ slug, onBack, siteSettings, onNavigate }: UnifiedPageProps) {
+  const isBuiltInLegalSlug = ['privacy', 'terms', 'disclaimer', 'cookie', 'dmca', 'about', 'support'].includes(slug);
+  const aiDoc = isBuiltInLegalSlug ? generateAILegalContent(slug, siteSettings) : null;
+
   // Find the page either in legalPages (takes priority) or customPages inside siteSettings
   let page = siteSettings.legalPages?.[slug] ? {
     id: `l_${slug}`,
-    title: siteSettings.legalPages[slug].title,
+    title: siteSettings.legalPages[slug].title || aiDoc?.title || `${slug.toUpperCase()} INFORMATION`,
     slug: slug,
-    content: siteSettings.legalPages[slug].content,
-    seoTitle: siteSettings.legalPages[slug].seoTitle,
-    seoDescription: siteSettings.legalPages[slug].seoDescription,
+    content: siteSettings.legalPages[slug].content || aiDoc?.content || '',
+    seoTitle: siteSettings.legalPages[slug].seoTitle || aiDoc?.seoTitle,
+    seoDescription: siteSettings.legalPages[slug].seoDescription || aiDoc?.seoDescription,
     status: siteSettings.legalPages[slug].status || 'published'
-  } as any : undefined;
+  } as any : (aiDoc ? {
+    id: `l_${slug}`,
+    title: aiDoc.title,
+    slug: slug,
+    content: aiDoc.content,
+    seoTitle: aiDoc.seoTitle,
+    seoDescription: aiDoc.seoDescription,
+    status: 'published'
+  } as any : undefined);
 
   if (!page) {
     page = siteSettings.customPages?.find(p => p.slug === slug);
