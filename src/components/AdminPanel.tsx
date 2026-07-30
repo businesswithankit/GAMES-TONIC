@@ -615,7 +615,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   // Calculate high-fidelity numerical stats, then animate count-up values smoothly
   useEffect(() => {
     const totalPosts = posts.length;
-    const totalBlogs = posts.filter(p => p.type === 'blogs').length;
     const totalVideos = videos.length;
     const totalMods = posts.filter(p => p.type === 'mods').length;
     const totalCategories = settingsForm.categories?.length || 0;
@@ -633,7 +632,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
 
       setStats({
         posts: Math.round(totalPosts * ratio),
-        blogs: Math.round(totalBlogs * ratio),
+        blogs: 0,
         videos: Math.round(totalVideos * ratio),
         mods: Math.round(totalMods * ratio),
         categories: Math.round(totalCategories * ratio),
@@ -2056,17 +2055,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                   <p className="text-[10px] text-gray-500 mt-4">Total customized games, patch updates, and timeline streams.</p>
                 </div>
 
-                <div className="p-6 glass-panel border border-cyber-purple/10 rounded-2xl flex flex-col justify-between relative overflow-hidden group hover:border-cyber-purple/30 transition-all">
-                  <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                    <Sparkles className="w-24 h-24 text-cyber-purple" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-mono text-gray-400 tracking-wider uppercase font-bold">EDITORIAL JOURNALS</span>
-                    <p className="text-3xl md:text-5xl font-display font-black text-cyber-purple mt-1 text-glow">{stats.blogs}</p>
-                  </div>
-                  <p className="text-[10px] text-gray-500 mt-4">Total curated editorial logs and platform announcements.</p>
-                </div>
-
                 <div className="p-6 glass-panel border border-cyber-magenta/10 rounded-2xl flex flex-col justify-between relative overflow-hidden group hover:border-cyber-magenta/30 transition-all">
                   <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                     <Video className="w-24 h-24 text-cyber-magenta" />
@@ -2271,7 +2259,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none"
                     >
                       <option value="games">Gaming Core Index (Games)</option>
-                      <option value="blogs">Curated Editorial logs (Blogs)</option>
                       <option value="mods">Modification Package (Mods)</option>
                       <option value="updates">Release Patch Log (Updates)</option>
                       <option value="announcements">Platform Announcements</option>
@@ -3283,8 +3270,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                             { id: 'sec_1', key: 'games', title: 'LATEST CONTENT', subtitle: 'Explore official indexes, system requirements & specifications', badge: 'CATALOGUE ENGINE', btnText: 'BROWSE ALL', btnLink: '#', visible: true, position: 1 },
                             { id: 'sec_2', key: 'mods', title: 'LATEST GAMING MODS', subtitle: 'Upgrade game script, visual shaders and gameplay features', badge: 'REVISIONS & SOURCE', btnText: 'EXPLORE MODS', btnLink: '#', visible: true, position: 2 },
                             { id: 'sec_3', key: 'videos', title: 'VIDEO BROADCAST CENTER', subtitle: 'Premium streaming highlights, visual overviews and video catalogs', badge: 'PREMIUM CHANNELS', btnText: 'WATCH MORE', btnLink: '#', visible: true, position: 3 },
-                            { id: 'sec_4', key: 'blogs', title: 'GAMING INTEL', subtitle: 'Browse latest expert papers, strategies and gameplay guides', badge: 'WHITE PAPERS & DEV logs', btnText: 'READ ALL', btnLink: '#', visible: true, position: 4 },
-                            { id: 'sec_5', key: 'upcoming', title: 'UPCOMING EVENTS', subtitle: 'Live releases, virtual campaigns and community competitions', badge: 'BROADCAST HORIZONS', btnText: 'VIEW TIMELINE', btnLink: '#', visible: true, position: 5 }
+                            { id: 'sec_5', key: 'upcoming', title: 'UPCOMING EVENTS', subtitle: 'Live releases, virtual campaigns and community competitions', badge: 'BROADCAST HORIZONS', btnText: 'VIEW TIMELINE', btnLink: '#', visible: true, position: 4 }
                           ];
                           setIsLoading(true);
                           try {
@@ -3508,7 +3494,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                         <option value="games">Games Catalog (games)</option>
                         <option value="mods">Gaming Mods (mods)</option>
                         <option value="videos">Video Center (videos)</option>
-                        <option value="blogs">Gaming Intel (blogs)</option>
                         <option value="upcoming">Upcoming Events (upcoming)</option>
                         <option value="trending">Trending Matrix (trending)</option>
                         <option value="stats">Stats Counters (stats)</option>

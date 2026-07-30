@@ -101,7 +101,6 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     { id: 'm1', name: 'Home', link: 'home', icon: 'Gamepad2', position: 1 },
     { id: 'm2', name: 'Latest Content', link: 'content', icon: 'Layers', position: 2 },
     { id: 'm3', name: 'Latest Mods', link: 'mods', icon: 'Code', position: 3 },
-    { id: 'm4', name: 'Latest Blogs', link: 'blogs', icon: 'Sparkles', position: 4 },
     { id: 'm5', name: 'Upcoming Spec', link: 'upcoming', icon: 'Calendar', position: 5 },
     { id: 'm6', name: 'About Us', link: 'about', icon: 'HelpCircle', position: 6 },
     { id: 'm7', name: 'Contact Us', link: 'contact', icon: 'Mail', position: 7 },
@@ -128,17 +127,16 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     visible: true
   },
   
-  // Seed all 9 homepage sections dynamically!
+  // Seed all homepage sections dynamically!
   homeSections: [
     { id: 'sec_hero', key: 'hero', title: 'GAMES TONIC HUB', subtitle: 'Next-Generation Modification catalogs & Cyber intelligence index', badge: 'UPLINK STREAM ACTIVE', visible: true, position: 1 },
     { id: 'sec_games', key: 'games', title: 'LATEST GAMING CONTENT', subtitle: 'Explore official registries and curated action updates.', badge: 'REGISTRY INDEX', btnText: 'BROWSE REGISTRY', btnLink: 'content', visible: true, position: 2 },
     { id: 'sec_mods', key: 'mods', title: 'LATEST MODS CATALOGUE', subtitle: 'Browse community-driven code edits and script packs.', badge: 'MODIFICATION PACKS', btnText: 'VIEW MODS', btnLink: 'mods', visible: true, position: 3 },
     { id: 'sec_videos', key: 'videos', title: 'PREMIUM VIDEO BROADCAST CENTER', subtitle: 'Watch dev conversations, game trailers and community dispatches.', badge: 'BROADCAST STREAM', visible: true, position: 4 },
-    { id: 'sec_blogs', key: 'blogs', title: 'LATEST BLOGS & PAPERS', subtitle: 'Review cyber investigations, guides and editorial articles.', badge: 'RECORDS ARCHIVE', btnText: 'READ ALL', btnLink: 'blogs', visible: true, position: 5 },
-    { id: 'sec_upcoming', key: 'upcoming', title: 'UPCOMING RELEASES & EVENTS', subtitle: 'Monitor planned milestones, patch updates and beta trials.', badge: 'FUTURE TIMELINES', visible: true, position: 6 },
-    { id: 'sec_trending', key: 'trending', title: 'MOST VIEWED INTEL', subtitle: 'Trending streams compiled by real-time visitor traffic views.', badge: 'TRENDING MATRIX', visible: true, position: 7 },
-    { id: 'sec_stats', key: 'stats', title: 'COMMUNITY FOOTPRINT', subtitle: 'Live statistic counters from our network node uplink.', badge: 'UPLINK STATISTICS', visible: true, position: 8 },
-    { id: 'sec_news', key: 'newsletter', title: 'JOIN THE DISPATCH', subtitle: 'Receive weekly modification highlights, script patch updates, and official cyber event listings instantly.', badge: 'UPLINK SUBSCRIPTION', visible: true, position: 9 },
+    { id: 'sec_upcoming', key: 'upcoming', title: 'UPCOMING RELEASES & EVENTS', subtitle: 'Monitor planned milestones, patch updates and beta trials.', badge: 'FUTURE TIMELINES', visible: true, position: 5 },
+    { id: 'sec_trending', key: 'trending', title: 'MOST VIEWED INTEL', subtitle: 'Trending streams compiled by real-time visitor traffic views.', badge: 'TRENDING MATRIX', visible: true, position: 6 },
+    { id: 'sec_stats', key: 'stats', title: 'COMMUNITY FOOTPRINT', subtitle: 'Live statistic counters from our network node uplink.', badge: 'UPLINK STATISTICS', visible: true, position: 7 },
+    { id: 'sec_news', key: 'newsletter', title: 'JOIN THE DISPATCH', subtitle: 'Receive weekly modification highlights, script patch updates, and official cyber event listings instantly.', badge: 'UPLINK SUBSCRIPTION', visible: true, position: 8 },
   ],
 
   // Seed Dynamic Footer Columns too!
@@ -149,7 +147,6 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
       position: 1,
       links: [
         { label: 'HOME HUB', url: 'home' },
-        { label: 'BLOG ARTICLES', url: 'blogs' },
         { label: 'SCRIPTING MODS', url: 'mods' },
         { label: 'UPCOMING CONTENT', url: 'upcoming' }
       ]
@@ -852,7 +849,6 @@ export default function App() {
 
   // Specific grids
   const modsPosts = publicPosts.filter(p => p.type === 'mods').slice(0, 4);
-  const blogPosts = publicPosts.filter(p => p.type === 'blogs').slice(0, 4);
   const gamePosts = publicPosts.filter(p => p.type === 'games').slice(0, 4);
   const upcomingPosts = publicPosts.filter(p => p.type === 'updates' || p.type === 'events').slice(0, 4);
 
@@ -1283,64 +1279,6 @@ export default function App() {
                         </React.Fragment>
                       );
 
-                    case 'blogs':
-                      return (
-                        <React.Fragment key={sec.id}>
-                          <AdPlacement position="homepage_blogs_top" ads={ads} />
-                          <section className="max-w-7xl mx-auto px-4 md:px-8 space-y-8">
-                            <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-cyber-magenta font-display font-bold text-xs tracking-wider uppercase">
-                                  <FileText className="w-4 h-4" />
-                                  <span>{sec.badge || 'EDITORIAL LOGS'}</span>
-                                </div>
-                                <h2 className="text-xl md:text-2xl font-display font-black text-white tracking-widest uppercase text-glow">{sec.title}</h2>
-                              </div>
-                              <button 
-                                onClick={() => setActivePage('blogs')}
-                                className="group flex items-center gap-1.5 text-xs font-display font-bold text-cyber-magenta hover:underline"
-                              >
-                                <span>{sec.btnText || 'VIEW ALL ARTICLES'}</span>
-                                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                              </button>
-                            </div>
-
-                            {blogPosts.length === 0 ? (
-                              <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                                No blog articles published.
-                              </div>
-                            ) : (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {blogPosts.map((post, idx) => (
-                                  <React.Fragment key={post.id}>
-                                    <ContentCard
-                                      post={post}
-                                      onSelect={(p) => setSelectedPost(p)}
-                                      onAction={(action, p, e) => {
-                                        e.stopPropagation();
-                                        if (action === 'link' && p.buttonLink) {
-                                          handleActionClick(p.buttonLink, true);
-                                        } else if (action === 'share') {
-                                          navigator.clipboard.writeText(window.location.origin + '?id=' + p.id);
-                                          alert('Outbound link copied to clipboard!');
-                                        } else if (action === 'save') {
-                                          alert('Article logs saved safely. Retrievable offline in Cache database.');
-                                        } else {
-                                          setSelectedPost(p);
-                                        }
-                                      }}
-                                      actionButtonsEnabled={sec.enableActionButtons !== false}
-                                    />
-                                    {idx === 1 && <NativeAdCard ads={ads} />}
-                                  </React.Fragment>
-                                ))}
-                              </div>
-                            )}
-                          </section>
-                          <AdPlacement position="homepage_blogs_bottom" ads={ads} />
-                        </React.Fragment>
-                      );
-
                     case 'upcoming':
                       return (
                         <section key={sec.id} className="max-w-7xl mx-auto px-4 md:px-8 space-y-8">
@@ -1585,17 +1523,15 @@ export default function App() {
           )}
 
           {/* VIEW: ARCHIVES DIRECTORIES (POSTS CATALOG FILTER SHEET) */}
-          {(activePage === 'content' || activePage === 'blogs' || activePage === 'mods' || activePage === 'upcoming') && (
+          {(activePage === 'content' || activePage === 'mods' || activePage === 'upcoming') && (
             <div className="max-w-7xl mx-auto px-4 md:px-8 space-y-10 animate-fade-in pt-6">
               
-              {activePage === 'blogs' && <><AdSensePlacement slot="blog_top" units={adsenseUnits} /><AdPlacement position="blog_top" ads={ads} /></>}
               {activePage === 'mods' && <><AdSensePlacement slot="mod_top" units={adsenseUnits} /><AdPlacement position="mods_top" ads={ads} /></>}
               
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-white/5 pb-6">
                 <div>
                   <h1 className="text-3xl md:text-5xl font-display font-black tracking-widest text-white uppercase text-glow">
                     {activePage === 'content' && 'REGISTRY CATALOGS'}
-                    {activePage === 'blogs' && 'EDITORIAL LOGS'}
                     {activePage === 'mods' && 'MODS REVISIONS'}
                     {activePage === 'upcoming' && 'FUTURE LIFECYCLE'}
                   </h1>
@@ -1724,7 +1660,6 @@ export default function App() {
 
                 {sortedPosts.filter((post) => {
                   if (activePage === 'mods') return post.type === 'mods';
-                  if (activePage === 'blogs') return post.type === 'blogs';
                   if (activePage === 'upcoming') return post.type === 'updates' || post.type === 'events';
                   return true;
                 }).map((post, idx) => (
@@ -1757,7 +1692,6 @@ export default function App() {
               {/* EMPTY STATE */}
               {sortedPosts.filter((p) => {
                 if (activePage === 'mods') return p.type === 'mods';
-                if (activePage === 'blogs') return p.type === 'blogs';
                 if (activePage === 'upcoming') return p.type === 'updates' || p.type === 'events';
                 return true;
               }).length === 0 && (
@@ -1770,7 +1704,6 @@ export default function App() {
                 </div>
               )}
 
-              {activePage === 'blogs' && <AdPlacement position="blog_bottom" ads={ads} />}
               {activePage === 'mods' && <AdPlacement position="mods_bottom" ads={ads} />}
 
             </div>
