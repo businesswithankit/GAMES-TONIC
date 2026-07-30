@@ -20,44 +20,7 @@ import ContentCard from './components/ContentCard';
 import { NativeAdCard } from './components/NativeAdCard';
 import { StickyAdBanner } from './components/StickyAdBanner';
 
-const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [
-  {
-    id: 'fg_1',
-    gameName: 'Cyberpunk 2077: Phantom Liberty',
-    developerName: 'CD Projekt Red',
-    developerEmail: 'contact@cdprojektred.com',
-    developerWebsite: 'https://www.cdprojektred.com',
-    gameLink: 'https://store.steampowered.com/app/1091500/Cyberpunk_2077/',
-    promptLink: 'https://store.steampowered.com/app/1091500/Cyberpunk_2077/',
-    imageLink: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
-    status: 'published',
-    position: 1
-  },
-  {
-    id: 'fg_2',
-    gameName: 'Grand Theft Auto V',
-    developerName: 'Rockstar Games',
-    developerEmail: 'support@rockstargames.com',
-    developerWebsite: 'https://www.rockstargames.com',
-    gameLink: 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
-    promptLink: 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
-    imageLink: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&q=80',
-    status: 'published',
-    position: 2
-  },
-  {
-    id: 'fg_3',
-    gameName: 'Elden Ring: Shadow of the Erdtree',
-    developerName: 'FromSoftware',
-    developerEmail: 'support@fromsoftware.jp',
-    developerWebsite: 'https://www.fromsoftware.jp',
-    gameLink: 'https://store.steampowered.com/app/1245620/ELDEN_RING/',
-    promptLink: 'https://store.steampowered.com/app/1245620/ELDEN_RING/',
-    imageLink: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80',
-    status: 'published',
-    position: 3
-  }
-];
+const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [];
 
 // Default Fallback Settings if Realtime DB doesn't have settings stored yet
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -153,8 +116,8 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     address: 'Cyber Tower Suite 733, Digital Hub, US',
     mapEmbed: ''
   },
-  categories: ["Action", "RPG", "Graphics", "Utility Scripts", "Events", "Patch Logs"],
-  tags: ["gta", "cyberpunk", "graphics", "script", "realism", "tools", "next-gen", "esport", "announcement"],
+  categories: [],
+  tags: [],
   newsletter: {
     title: "JOIN THE DISPATCH",
     description: "Receive weekly modification highlights, script patch updates, and official cyber event listings instantly.",
@@ -1185,7 +1148,7 @@ export default function App() {
 
                           {gamePosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No games published. Check back soon for fresh community additions!
+                              No content available. Create your first content from the Admin Panel.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1237,7 +1200,7 @@ export default function App() {
 
                           {featuredGames.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No featured games currently listed. Check back soon for fresh additions!
+                              No content available. Create your first content from the Admin Panel.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1315,7 +1278,7 @@ export default function App() {
 
                           {modsPosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No modification packs compiled yet.
+                              No content available. Create your first content from the Admin Panel.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1350,7 +1313,6 @@ export default function App() {
                       );
 
                     case 'videos':
-                      if (videos.length === 0) return null;
                       return (
                         <React.Fragment key={sec.id}>
                           <AdSensePlacement slot="video_top" units={adsenseUnits} />
@@ -1365,45 +1327,51 @@ export default function App() {
                               <p className="text-xs text-gray-400 font-sans tracking-wide mt-1">{sec.subtitle}</p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              {videos.sort((a,b) => (a.position || 0) - (b.position || 0)).slice(0, 4).map((video) => (
-                                <div 
-                                  key={video.id} 
-                                  className="p-4 glass-panel rounded-2xl border border-white/5 flex flex-col justify-between space-y-4 bg-black/45 hover:border-cyber-purple/35 transition-all shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
-                                >
-                                  <div className="space-y-4">
-                                    <div 
-                                      className="relative w-full aspect-video rounded-xl overflow-hidden [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_iframe]:aspect-video filter drop-shadow-md bg-black/80" 
-                                      dangerouslySetInnerHTML={{ __html: video.embedCode }}
-                                    />
-                                    <div className="space-y-1 py-1 text-left">
-                                      <h3 className="font-display font-black text-white text-base tracking-wide uppercase line-clamp-1">
-                                        {video.title}
-                                      </h3>
-                                      {video.description && (
-                                        <p className="text-xs text-gray-400 line-clamp-2 font-sans leading-relaxed">
-                                          {video.description}
-                                        </p>
-                                      )}
+                            {videos.length === 0 ? (
+                              <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
+                                No content available. Create your first content from the Admin Panel.
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {videos.sort((a,b) => (a.position || 0) - (b.position || 0)).slice(0, 4).map((video) => (
+                                  <div 
+                                    key={video.id} 
+                                    className="p-4 glass-panel rounded-2xl border border-white/5 flex flex-col justify-between space-y-4 bg-black/45 hover:border-cyber-purple/35 transition-all shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
+                                  >
+                                    <div className="space-y-4">
+                                      <div 
+                                        className="relative w-full aspect-video rounded-xl overflow-hidden [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_iframe]:aspect-video filter drop-shadow-md bg-black/80" 
+                                        dangerouslySetInnerHTML={{ __html: video.embedCode }}
+                                      />
+                                      <div className="space-y-1 py-1 text-left">
+                                        <h3 className="font-display font-black text-white text-base tracking-wide uppercase line-clamp-1">
+                                          {video.title}
+                                        </h3>
+                                        {video.description && (
+                                          <p className="text-xs text-gray-400 line-clamp-2 font-sans leading-relaxed">
+                                            {video.description}
+                                          </p>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
 
-                                  {sec.enableActionButtons !== false && video.buttonLink && video.linkEnabled !== false && (
-                                    <div className="pt-3 border-t border-white/5 font-sans">
-                                      <button 
-                                        onClick={() => {
-                                          window.open(video.buttonLink, '_blank');
-                                        }}
-                                        className="w-full py-2 bg-gradient-to-r from-cyber-magenta/20 to-cyber-purple/20 hover:from-cyber-magenta/35 hover:to-cyber-purple/35 border border-white/10 hover:border-cyber-magenta/30 text-xs font-black font-display tracking-widest uppercase text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                      >
-                                        <span>{video.buttonText || 'Watch Video'}</span>
-                                        <ArrowRight className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                                    {sec.enableActionButtons !== false && video.buttonLink && video.linkEnabled !== false && (
+                                      <div className="pt-3 border-t border-white/5 font-sans">
+                                        <button 
+                                          onClick={() => {
+                                            window.open(video.buttonLink, '_blank');
+                                          }}
+                                          className="w-full py-2 bg-gradient-to-r from-cyber-magenta/20 to-cyber-purple/20 hover:from-cyber-magenta/35 hover:to-cyber-purple/35 border border-white/10 hover:border-cyber-magenta/30 text-xs font-black font-display tracking-widest uppercase text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                        >
+                                          <span>{video.buttonText || 'Watch Video'}</span>
+                                          <ArrowRight className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </section>
                           <AdSensePlacement slot="video_bottom" units={adsenseUnits} />
                           <AdPlacement position="video_bottom" ads={ads} />
@@ -1432,7 +1400,7 @@ export default function App() {
 
                           {upcomingPosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No future trials scheduled, monitor live feed logs.
+                              No content available. Create your first content from the Admin Panel.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1477,7 +1445,7 @@ export default function App() {
 
                           {publicPosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              Trending lists compile in response to real visitor traffic.
+                              No content available. Create your first content from the Admin Panel.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1826,12 +1794,9 @@ export default function App() {
                 if (activePage === 'upcoming') return p.type === 'updates' || p.type === 'events';
                 return true;
               }).length === 0 && (
-                <div className="text-center py-24 border border-dashed border-white/10 rounded-2xl max-w-lg mx-auto space-y-4">
-                  <AlertTriangle className="w-12 h-12 text-cyber-magenta mx-auto animate-pulse" />
-                  <h3 className="font-display text-white font-bold tracking-widest uppercase">Uplink Repository Empty</h3>
-                  <p className="text-xs text-gray-400 font-sans max-w-sm mx-auto">
-                    No active items matching your criteria are in our catalogs. Try checking other categories or visit us again later!
-                  </p>
+                <div className="text-center py-16 border border-white/5 bg-white/[0.01] rounded-2xl max-w-lg mx-auto space-y-2 p-8 font-sans">
+                  <p className="text-sm text-gray-400">No content available.</p>
+                  <p className="text-xs text-gray-500">Create your first content from the Admin Panel.</p>
                 </div>
               )}
 

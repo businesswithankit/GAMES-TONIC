@@ -58,11 +58,7 @@ import {
   Cpu,
   Gamepad2,
   HardDrive,
-  ExternalLink,
-  History,
-  Search,
-  Filter,
-  ArrowUpDown
+  ExternalLink
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { ContentPost, SiteSettings, NavMenu, ActionButton, LegalPage, VideoItem, Advertisement, AdSenseUnit, FeaturedGameItem } from '../types';
@@ -90,7 +86,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   const [authLoading, setAuthLoading] = useState(true);
 
   // Primary Sections Tab Selector
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'posts' | 'post-form' | 'featured-games' | 'featured-game-form' | 'videos' | 'video-form' | 'buttons' | 'menus' | 'footer' | 'legal' | 'home-builder' | 'announcements' | 'socials' | 'settings' | 'custom-pages' | 'counters' | 'sponsor-ads' | 'adsense'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'post-form' | 'featured-games' | 'featured-game-form' | 'videos' | 'video-form' | 'buttons' | 'menus' | 'footer' | 'legal' | 'home-builder' | 'announcements' | 'socials' | 'settings' | 'custom-pages' | 'counters' | 'sponsor-ads' | 'adsense'>('dashboard');
 
   // Loaded Content States
   const [posts, setPosts] = useState<ContentPost[]>([]);
@@ -99,11 +95,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   const [adsenseUnits, setAdsenseUnits] = useState<AdSenseUnit[]>([]);
   const [settingsForm, setSettingsForm] = useState<SiteSettings>(siteSettings);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Content History Filter/Search/Sort States
-  const [historySearch, setHistorySearch] = useState('');
-  const [historyTypeFilter, setHistoryTypeFilter] = useState('all');
-  const [historySort, setHistorySort] = useState<'newest' | 'oldest'>('newest');
 
   // FEATURED GAMES CRUD FORM STATE
   const [selectedFeaturedGameId, setSelectedFeaturedGameId] = useState<string | null>(null);
@@ -619,45 +610,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       alert("Featured Game item deleted successfully.");
     } catch (err: any) {
       alert("Error deleting item: " + err.message);
-    }
-  };
-
-  const handleDuplicateHistoryItem = async (item: { id: string; type: 'post' | 'featured_game' | 'video'; title: string; rawItem: any }) => {
-    setIsLoading(true);
-    try {
-      if (item.type === 'post') {
-        const cloned = {
-          ...item.rawItem,
-          title: `${item.rawItem.title} (Copy)`,
-          slug: `${item.rawItem.slug || 'post'}-copy-${Date.now()}`
-        };
-        delete cloned.id;
-        const newRef = push(dbRef(db, 'posts'));
-        await set(newRef, cloned);
-        alert(`Content item "${item.title}" duplicated successfully!`);
-      } else if (item.type === 'featured_game') {
-        const cloned = {
-          ...item.rawItem,
-          gameName: `${item.rawItem.gameName} (Copy)`
-        };
-        delete cloned.id;
-        const newRef = push(dbRef(db, 'featured_games'));
-        await set(newRef, cloned);
-        alert(`Featured Game "${item.title}" duplicated successfully!`);
-      } else if (item.type === 'video') {
-        const cloned = {
-          ...item.rawItem,
-          title: `${item.rawItem.title} (Copy)`
-        };
-        delete cloned.id;
-        const newRef = push(dbRef(db, 'videos'));
-        await set(newRef, cloned);
-        alert(`Video item "${item.title}" duplicated successfully!`);
-      }
-    } catch (err: any) {
-      alert("Error duplicating item: " + err.message);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -2031,7 +1983,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   // FULLY DYNAMIC SIDEBAR TABS DEFINITION
   const sidebarItems = [
     { key: 'dashboard', label: 'Dashboard Control', icon: LayoutDashboard, color: 'text-cyber-cyan' },
-    { key: 'history', label: 'Content History', icon: History, color: 'text-amber-400' },
     { key: 'posts', label: 'Content Manager', icon: FileText, color: 'text-cyber-cyan' },
     { key: 'post-form', label: 'Create Content', icon: Plus, color: 'text-cyber-cyan' },
     { key: 'featured-games', label: 'Featured Games', icon: Gamepad2, color: 'text-cyber-cyan' },
@@ -2258,244 +2209,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* TAB: CONTENT HISTORY */}
-          {activeTab === 'history' && (
-            <div className="space-y-6 animate-fade-in max-w-6xl font-sans">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
-                <div>
-                  <div className="flex items-center gap-2 text-amber-400 font-display font-bold text-xs tracking-wider uppercase mb-1">
-                    <History className="w-4 h-4 animate-pulse text-amber-400" />
-                    <span>REALTIME ARCHIVE SYSTEM</span>
-                  </div>
-                  <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">
-                    CONTENT HISTORY
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-1">
-                    All content from every CMS section in one place with quick management controls.
-                  </p>
-                </div>
-              </div>
-
-              {/* SEARCH, FILTER, AND SORTING CONTROLS */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-black/40 border border-white/10 rounded-2xl">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={historySearch}
-                    onChange={(e) => setHistorySearch(e.target.value)}
-                    placeholder="Search by title, author, or type..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
-                  />
-                </div>
-
-                {/* Filter */}
-                <div className="relative">
-                  <Filter className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <select
-                    value={historyTypeFilter}
-                    onChange={(e) => setHistoryTypeFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-cyber-cyan font-bold uppercase cursor-pointer"
-                  >
-                    <option value="all">ALL CONTENT TYPES</option>
-                    <option value="games">GAMES</option>
-                    <option value="mods">MODS</option>
-                    <option value="featured-game">FEATURED GAMES</option>
-                    <option value="video">VIDEOS</option>
-                    <option value="updates">UPDATES</option>
-                    <option value="events">EVENTS</option>
-                  </select>
-                </div>
-
-                {/* Sort */}
-                <div className="relative">
-                  <ArrowUpDown className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <select
-                    value={historySort}
-                    onChange={(e) => setHistorySort(e.target.value as any)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white font-bold uppercase cursor-pointer"
-                  >
-                    <option value="newest">NEWEST FIRST</option>
-                    <option value="oldest">OLDEST FIRST</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* HISTORY LIST CARDS */}
-              {(() => {
-                const allHistoryItems = [
-                  ...posts.map(p => ({
-                    id: p.id,
-                    type: 'post' as const,
-                    title: p.title,
-                    thumbnail: p.thumbnail || p.cover || p.banner || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
-                    contentType: (p.type || 'games').toUpperCase(),
-                    rawCategory: p.category || p.type || 'games',
-                    createdDate: p.publishDate || 'N/A',
-                    updatedDate: p.publishDate || 'N/A',
-                    status: p.status || 'published',
-                    author: p.author || 'Admin',
-                    link: p.buttonLink || p.extraLink || '',
-                    rawItem: p
-                  })),
-                  ...featuredGames.map(fg => ({
-                    id: fg.id,
-                    type: 'featured_game' as const,
-                    title: fg.gameName,
-                    thumbnail: fg.imageLink || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
-                    contentType: 'FEATURED GAME',
-                    rawCategory: 'featured-game',
-                    createdDate: 'FEATURED',
-                    updatedDate: 'FEATURED',
-                    status: fg.status || 'published',
-                    author: fg.developerName || 'Admin',
-                    link: fg.promptLink || fg.gameLink || '',
-                    rawItem: fg
-                  })),
-                  ...videos.map(v => ({
-                    id: v.id,
-                    type: 'video' as const,
-                    title: v.title,
-                    thumbnail: v.thumbnail || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
-                    contentType: 'VIDEO',
-                    rawCategory: 'video',
-                    createdDate: 'STREAM',
-                    updatedDate: 'STREAM',
-                    status: 'published' as const,
-                    author: 'Admin',
-                    link: v.buttonLink || '',
-                    rawItem: v
-                  }))
-                ];
-
-                const filtered = allHistoryItems.filter(item => {
-                  const matchesSearch = !historySearch || 
-                    item.title.toLowerCase().includes(historySearch.toLowerCase()) || 
-                    item.contentType.toLowerCase().includes(historySearch.toLowerCase()) ||
-                    (item.author && item.author.toLowerCase().includes(historySearch.toLowerCase()));
-                  
-                  const matchesType = historyTypeFilter === 'all' || 
-                    item.rawCategory.toLowerCase() === historyTypeFilter.toLowerCase() ||
-                    item.contentType.toLowerCase().replace(/\s+/g, '-') === historyTypeFilter.toLowerCase();
-                  
-                  return matchesSearch && matchesType;
-                }).sort((a, b) => {
-                  if (historySort === 'oldest') {
-                    return a.id.localeCompare(b.id);
-                  }
-                  return b.id.localeCompare(a.id);
-                });
-
-                if (filtered.length === 0) {
-                  return (
-                    <div className="p-12 border border-dashed border-white/10 rounded-2xl text-center text-gray-500 font-sans">
-                      <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-30 text-amber-400 animate-pulse" />
-                      <p className="text-sm">No history records match the current search filter.</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filtered.map((item) => (
-                      <div 
-                        key={`${item.type}_${item.id}`} 
-                        className="bg-black/40 border border-white/10 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between group hover:border-amber-400/40 transition-all"
-                      >
-                        {/* Header & Thumbnail */}
-                        <div className="relative aspect-video bg-black/60 overflow-hidden">
-                          <img 
-                            src={item.thumbnail} 
-                            alt={item.title}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                          />
-                          <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                            <span className="px-2.5 py-1 bg-black/80 backdrop-blur-md border border-amber-400/40 text-amber-400 font-mono text-[10px] font-bold rounded-lg uppercase shadow">
-                              {item.contentType}
-                            </span>
-                          </div>
-                          <span className={`absolute top-3 right-3 px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase ${item.status === 'published' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'}`}>
-                            {item.status}
-                          </span>
-                        </div>
-
-                        {/* Details */}
-                        <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h3 className="font-display font-bold text-white text-base uppercase tracking-wider line-clamp-1" title={item.title}>
-                              {item.title}
-                            </h3>
-                            <div className="mt-2 space-y-1 text-xs text-gray-400 font-sans">
-                              <p><strong className="text-gray-300">Author/Dev:</strong> {item.author}</p>
-                              <p><strong className="text-gray-300">Created Date:</strong> {item.createdDate}</p>
-                              <p><strong className="text-gray-300">Updated Date:</strong> {item.updatedDate}</p>
-                            </div>
-                          </div>
-
-                          {/* Quick Action Buttons */}
-                          <div className="pt-3 border-t border-white/5 flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1">
-                              {/* Edit */}
-                              <button
-                                onClick={() => {
-                                  if (item.type === 'post') handleEditPost(item.rawItem);
-                                  else if (item.type === 'featured_game') handleEditFeaturedGame(item.rawItem);
-                                  else if (item.type === 'video') handleEditVideo(item.rawItem);
-                                }}
-                                className="p-2 bg-white/5 hover:bg-cyber-cyan/20 text-gray-300 hover:text-cyber-cyan border border-white/10 rounded-lg transition-colors cursor-pointer"
-                                title="Edit Item"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Duplicate */}
-                              <button
-                                onClick={() => handleDuplicateHistoryItem(item)}
-                                className="p-2 bg-white/5 hover:bg-cyber-purple/20 text-gray-300 hover:text-cyber-purple border border-white/10 rounded-lg transition-colors cursor-pointer"
-                                title="Duplicate Item"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Delete */}
-                              <button
-                                onClick={() => {
-                                  if (item.type === 'post') handleDeletePost(item.id);
-                                  else if (item.type === 'featured_game') handleDeleteFeaturedGame(item.id);
-                                  else if (item.type === 'video') handleDeleteVideo(item.id);
-                                }}
-                                className="p-2 bg-white/5 hover:bg-cyber-magenta/20 text-gray-300 hover:text-cyber-magenta border border-white/10 rounded-lg transition-colors cursor-pointer"
-                                title="Delete Item"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Open */}
-                            {item.link ? (
-                              <button
-                                onClick={() => window.open(item.link, '_blank')}
-                                className="px-3 py-1.5 bg-amber-400/10 border border-amber-400/30 text-amber-400 hover:bg-amber-400 hover:text-black rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1 cursor-pointer"
-                                title="Open Link"
-                              >
-                                <span>OPEN</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-gray-600 font-mono">NO LINK</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
             </div>
           )}
 
