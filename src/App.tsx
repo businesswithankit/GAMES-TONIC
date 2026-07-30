@@ -5,7 +5,7 @@ import {
   Download, FileText, ChevronDown, RefreshCw, AlertTriangle, Play, Radio, Video,
   ShieldCheck
 } from 'lucide-react';
-import { ContentPost, SiteSettings, ActivePage, VideoItem, HomeSection, FooterColumn, CustomSocialLink, Advertisement, AdSenseUnit } from './types';
+import { ContentPost, SiteSettings, ActivePage, VideoItem, HomeSection, FooterColumn, CustomSocialLink, Advertisement, AdSenseUnit, FeaturedGameItem } from './types';
 import { db } from './lib/firebase';
 import { ref, onValue, push, set, runTransaction } from 'firebase/database';
 import BackgroundEffect from './components/BackgroundEffect';
@@ -19,6 +19,45 @@ import { compileActiveSocialLinks, getSocialSvgIcon } from './lib/socialUtils';
 import ContentCard from './components/ContentCard';
 import { NativeAdCard } from './components/NativeAdCard';
 import { StickyAdBanner } from './components/StickyAdBanner';
+
+const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [
+  {
+    id: 'fg_1',
+    gameName: 'Cyberpunk 2077: Phantom Liberty',
+    gameWeight: '70 GB',
+    developerName: 'CD Projekt Red',
+    developerEmail: 'contact@cdprojektred.com',
+    developerWebsite: 'https://www.cdprojektred.com',
+    gameLink: 'https://store.steampowered.com/app/1091500/Cyberpunk_2077/',
+    imageLink: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
+    status: 'published',
+    position: 1
+  },
+  {
+    id: 'fg_2',
+    gameName: 'Grand Theft Auto V',
+    gameWeight: '95 GB',
+    developerName: 'Rockstar Games',
+    developerEmail: 'support@rockstargames.com',
+    developerWebsite: 'https://www.rockstargames.com',
+    gameLink: 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
+    imageLink: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&q=80',
+    status: 'published',
+    position: 2
+  },
+  {
+    id: 'fg_3',
+    gameName: 'Elden Ring: Shadow of the Erdtree',
+    gameWeight: '60 GB',
+    developerName: 'FromSoftware',
+    developerEmail: 'support@fromsoftware.jp',
+    developerWebsite: 'https://www.fromsoftware.jp',
+    gameLink: 'https://store.steampowered.com/app/1245620/ELDEN_RING/',
+    imageLink: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80',
+    status: 'published',
+    position: 3
+  }
+];
 
 // Default Fallback Settings if Realtime DB doesn't have settings stored yet
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -334,6 +373,7 @@ export default function App() {
   // Loaded Content States
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [featuredGames, setFeaturedGames] = useState<FeaturedGameItem[]>(DEFAULT_FEATURED_GAMES);
   const [ads, setAds] = useState<Advertisement[]>([]);
   const [adsenseUnits, setAdsenseUnits] = useState<AdSenseUnit[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
@@ -613,12 +653,28 @@ export default function App() {
       }
     });
 
+    // Listen for custom Featured Games
+    const featuredGamesRef = ref(db, 'featured_games');
+    const unsubFeaturedGames = onValue(featuredGamesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const list = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        })) as FeaturedGameItem[];
+        setFeaturedGames(list);
+      } else {
+        setFeaturedGames(DEFAULT_FEATURED_GAMES);
+      }
+    });
+
     return () => {
       unsubSettings();
       unsubPosts();
       unsubVideos();
       unsubAds();
       unsubAdsense();
+      unsubFeaturedGames();
     };
   }, []);
 
@@ -1158,7 +1214,7 @@ export default function App() {
                           )}
                         </section>
 
-                        {/* FEATURED GAME GENRES & EXPLORATION SHOWCASE AREA (BELOW LATEST CONTENT GAMES) */}
+                        {/* FEATURED GAMES & SPECS SHOWCASE AREA (BELOW LATEST CONTENT GAMES) */}
                         <section className="max-w-7xl mx-auto px-4 md:px-8 pt-4">
                           <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-b from-white/[0.03] to-black/60 border border-white/10 relative overflow-hidden backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                             {/* Background ambient lighting */}
@@ -1171,111 +1227,76 @@ export default function App() {
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-2 text-cyber-cyan font-display font-bold text-xs tracking-wider uppercase">
                                     <Sparkles className="w-4 h-4 text-cyber-cyan animate-pulse" />
-                                    <span>FEATURED GAME GENRES & EXPLORATION</span>
+                                    <span>FEATURED GAMES & SPECS DIRECTORY</span>
                                   </div>
                                   <h3 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase text-glow">
-                                    DISCOVER GAMES BY CATEGORY & SPECS
+                                    FEATURED GAMES & DEVELOPERS
                                   </h3>
                                   <p className="text-xs text-gray-400 font-sans">
-                                    Filter and jump directly into verified titles, modification suites, and high-performance game nodes.
+                                    Handpicked game releases with verified specs, developer credentials, and direct access links.
                                   </p>
                                 </div>
-
-                                <button
-                                  onClick={() => setActivePage('content')}
-                                  className="self-start sm:self-auto px-5 py-2.5 bg-cyber-cyan/10 hover:bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan font-display font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 group cursor-pointer"
-                                >
-                                  <span>EXPLORE ALL CATALOGS</span>
-                                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                </button>
                               </div>
 
-                              {/* Category Feature Grid */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div 
-                                  onClick={() => setActivePage('content')}
-                                  className="p-5 rounded-2xl bg-black/40 border border-white/5 hover:border-cyber-cyan/40 transition-all cursor-pointer group space-y-3"
-                                >
-                                  <div className="w-10 h-10 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/20 flex items-center justify-center text-cyber-cyan group-hover:scale-110 transition-transform">
-                                    <Gamepad2 className="w-5 h-5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-display font-bold text-white text-sm uppercase tracking-wide group-hover:text-cyber-cyan transition-colors">
-                                      ACTION & OPEN WORLD
-                                    </h4>
-                                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                                      Immersive open-world campaigns, tactical shooters, and high-stakes adventure games.
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-[10px] font-mono text-cyber-cyan font-bold uppercase pt-1">
-                                    <span>BROWSE TITLES</span>
-                                    <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                                  </div>
+                              {/* Featured Games Grid */}
+                              {featuredGames.length === 0 ? (
+                                <div className="p-8 text-center text-gray-500 font-sans border border-dashed border-white/10 rounded-2xl">
+                                  <p className="text-sm">No featured games currently listed.</p>
                                 </div>
+                              ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                  {featuredGames.map((game) => (
+                                    <div 
+                                      key={game.id}
+                                      className="group bg-black/50 border border-white/10 hover:border-cyber-cyan/40 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col justify-between hover:shadow-[0_0_25px_rgba(0,240,255,0.15)]"
+                                    >
+                                      {/* Image container */}
+                                      <div className="relative aspect-video overflow-hidden bg-black/80">
+                                        <img 
+                                          src={game.imageLink || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80'} 
+                                          alt={game.gameName}
+                                          referrerPolicy="no-referrer"
+                                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+                                        
+                                        {/* Game Weight Badge */}
+                                        {game.gameWeight && (
+                                          <div className="absolute top-3 right-3 px-2.5 py-1 bg-black/80 backdrop-blur-md border border-cyber-cyan/30 text-cyber-cyan font-mono text-[10px] font-bold rounded-lg uppercase tracking-wider shadow">
+                                            {game.gameWeight}
+                                          </div>
+                                        )}
+                                      </div>
 
-                                <div 
-                                  onClick={() => setActivePage('content')}
-                                  className="p-5 rounded-2xl bg-black/40 border border-white/5 hover:border-cyber-purple/40 transition-all cursor-pointer group space-y-3"
-                                >
-                                  <div className="w-10 h-10 rounded-xl bg-cyber-purple/10 border border-cyber-purple/20 flex items-center justify-center text-cyber-purple group-hover:scale-110 transition-transform">
-                                    <Sparkles className="w-5 h-5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-display font-bold text-white text-sm uppercase tracking-wide group-hover:text-cyber-purple transition-colors">
-                                      CYBERPUNK & SCI-FI
-                                    </h4>
-                                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                                      Futuristic simulations, neon cityscapes, and dystopian sci-fi RPG experiences.
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-[10px] font-mono text-cyber-purple font-bold uppercase pt-1">
-                                    <span>BROWSE TITLES</span>
-                                    <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                                  </div>
-                                </div>
+                                      {/* Card Details: Image, Game Name, Developer Name, Button */}
+                                      <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                                        <div className="space-y-1.5">
+                                          <h4 className="font-display font-black text-white text-base uppercase tracking-wider group-hover:text-cyber-cyan transition-colors line-clamp-1">
+                                            {game.gameName}
+                                          </h4>
+                                          {game.developerName && (
+                                            <p className="text-xs text-gray-400 font-sans flex items-center gap-1.5">
+                                              <span className="text-gray-500 font-mono text-[10px] uppercase tracking-wider">DEVELOPER:</span>
+                                              <span className="text-cyber-cyan font-bold">{game.developerName}</span>
+                                            </p>
+                                          )}
+                                        </div>
 
-                                <div 
-                                  onClick={() => setActivePage('mods')}
-                                  className="p-5 rounded-2xl bg-black/40 border border-white/5 hover:border-cyber-magenta/40 transition-all cursor-pointer group space-y-3"
-                                >
-                                  <div className="w-10 h-10 rounded-xl bg-cyber-magenta/10 border border-cyber-magenta/20 flex items-center justify-center text-cyber-magenta group-hover:scale-110 transition-transform">
-                                    <Layers className="w-5 h-5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-display font-bold text-white text-sm uppercase tracking-wide group-hover:text-cyber-magenta transition-colors">
-                                      MOD UTILITIES & SCRIPTS
-                                    </h4>
-                                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                                      Custom script loaders, ENB shaders, graphics revamps, and modding toolkits.
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-[10px] font-mono text-cyber-magenta font-bold uppercase pt-1">
-                                    <span>EXPLORE MODS</span>
-                                    <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                                  </div>
+                                        {/* Direct Game Link Button */}
+                                        <a
+                                          href={game.gameLink}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="w-full py-2.5 px-4 bg-cyber-cyan/10 hover:bg-cyber-cyan hover:text-black border border-cyber-cyan/40 text-cyber-cyan font-display font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 group/btn cursor-pointer shadow-md"
+                                        >
+                                          <span>GET GAME</span>
+                                          <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
-
-                                <div 
-                                  onClick={() => setActivePage('upcoming')}
-                                  className="p-5 rounded-2xl bg-black/40 border border-white/5 hover:border-amber-400/40 transition-all cursor-pointer group space-y-3"
-                                >
-                                  <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
-                                    <Calendar className="w-5 h-5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-display font-bold text-white text-sm uppercase tracking-wide group-hover:text-amber-400 transition-colors">
-                                      UPCOMING RELEASES
-                                    </h4>
-                                    <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                                      Beta roadmaps, patch release milestones, and community event timelines.
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-[10px] font-mono text-amber-400 font-bold uppercase pt-1">
-                                    <span>VIEW TIMELINE</span>
-                                    <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                                  </div>
-                                </div>
-                              </div>
+                              )}
 
                               {/* Platform Integrity Highlights Bar */}
                               <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 text-xs font-mono text-gray-400">

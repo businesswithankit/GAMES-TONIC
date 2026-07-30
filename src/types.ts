@@ -98,6 +98,19 @@ export interface CustomSocialLink {
   position?: number;
 }
 
+export interface FeaturedGameItem {
+  id: string;
+  gameName: string;
+  gameWeight: string;
+  developerName: string;
+  developerEmail: string;
+  developerWebsite: string;
+  gameLink: string;
+  imageLink: string;
+  status?: 'published' | 'draft';
+  position?: number;
+}
+
 export interface AnnouncementItem {
   id: string;
   text: string;
