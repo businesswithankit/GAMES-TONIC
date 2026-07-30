@@ -101,11 +101,11 @@ export interface CustomSocialLink {
 export interface FeaturedGameItem {
   id: string;
   gameName: string;
-  gameWeight: string;
   developerName: string;
   developerEmail: string;
   developerWebsite: string;
   gameLink: string;
+  promptLink?: string;
   imageLink: string;
   status?: 'published' | 'draft';
   position?: number;

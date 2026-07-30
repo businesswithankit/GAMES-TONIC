@@ -23,6 +23,76 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
   const shareUrl = window.location.href;
   const shareTitle = post.title;
 
+  if (post.category === 'FEATURED GAME') {
+    const targetLink = post.buttonLink || post.extraLink;
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-cyber-dark/95 backdrop-blur-xl animate-fade-in pb-16 flex items-center justify-center p-4">
+        <div className="relative w-full max-w-3xl glass-panel-neon border border-cyber-cyan/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,240,255,0.15)] bg-[#0c0c16] font-sans my-auto">
+          
+          {/* Floating Close Button */}
+          <button
+            onClick={onClose}
+            id="detail-close-btn"
+            className="absolute top-4 right-4 p-2.5 bg-black/70 border border-white/10 text-white rounded-full hover:border-cyber-cyan hover:text-cyber-cyan transition-all cursor-pointer z-10"
+          >
+            ✕
+          </button>
+
+          {/* Game Image */}
+          <div className="relative w-full aspect-video max-h-[380px] overflow-hidden bg-black">
+            <img
+              src={post.banner || post.thumbnail || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80'}
+              alt={post.title}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c16] via-transparent to-black/30" />
+            
+            <div className="absolute bottom-4 left-6 right-6">
+              <span className="text-[10px] uppercase font-display font-bold tracking-widest text-cyber-cyan bg-cyber-cyan/15 border border-cyber-cyan/30 px-3 py-1 rounded-full">
+                FEATURED GAME
+              </span>
+            </div>
+          </div>
+
+          {/* Details Content */}
+          <div className="p-6 md:p-8 space-y-6">
+            {/* Game Name */}
+            <h1 className="text-2xl md:text-4xl font-display font-black text-white tracking-wider uppercase text-glow">
+              {post.title}
+            </h1>
+
+            {/* Description */}
+            <div className="prose prose-invert max-w-none text-gray-300 font-sans text-sm md:text-base leading-relaxed bg-white/[0.02] p-4 rounded-xl border border-white/5">
+              {post.description || post.shortDescription}
+            </div>
+
+            {/* Prompt Link Button */}
+            {targetLink && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onActionClick) {
+                      onActionClick(targetLink, true);
+                    } else {
+                      window.open(targetLink, '_blank');
+                    }
+                  }}
+                  className="w-full py-4 bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-125 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] text-black font-display font-black text-sm uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-5 h-5 text-black" />
+                  <span>GET PROMPT</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleShareClick = async () => {
     if (navigator.share) {
       try {

@@ -24,11 +24,11 @@ const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [
   {
     id: 'fg_1',
     gameName: 'Cyberpunk 2077: Phantom Liberty',
-    gameWeight: '70 GB',
     developerName: 'CD Projekt Red',
     developerEmail: 'contact@cdprojektred.com',
     developerWebsite: 'https://www.cdprojektred.com',
     gameLink: 'https://store.steampowered.com/app/1091500/Cyberpunk_2077/',
+    promptLink: 'https://store.steampowered.com/app/1091500/Cyberpunk_2077/',
     imageLink: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
     status: 'published',
     position: 1
@@ -36,11 +36,11 @@ const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [
   {
     id: 'fg_2',
     gameName: 'Grand Theft Auto V',
-    gameWeight: '95 GB',
     developerName: 'Rockstar Games',
     developerEmail: 'support@rockstargames.com',
     developerWebsite: 'https://www.rockstargames.com',
     gameLink: 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
+    promptLink: 'https://store.steampowered.com/app/271590/Grand_Theft_Auto_V/',
     imageLink: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&q=80',
     status: 'published',
     position: 2
@@ -48,11 +48,11 @@ const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [
   {
     id: 'fg_3',
     gameName: 'Elden Ring: Shadow of the Erdtree',
-    gameWeight: '60 GB',
     developerName: 'FromSoftware',
     developerEmail: 'support@fromsoftware.jp',
     developerWebsite: 'https://www.fromsoftware.jp',
     gameLink: 'https://store.steampowered.com/app/1245620/ELDEN_RING/',
+    promptLink: 'https://store.steampowered.com/app/1245620/ELDEN_RING/',
     imageLink: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80',
     status: 'published',
     position: 3
@@ -1242,22 +1242,22 @@ export default function App() {
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                               {featuredGames.map((game) => {
+                                const targetPromptLink = game.promptLink || game.gameLink;
                                 const post: ContentPost = {
                                   id: game.id,
                                   title: game.gameName,
                                   slug: game.id,
                                   thumbnail: game.imageLink || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
                                   banner: game.imageLink || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
-                                  description: game.gameWeight ? `Storage size: ${game.gameWeight}. Developer: ${game.developerName || 'N/A'}` : 'Featured Game Specs',
-                                  shortDescription: game.gameWeight 
-                                    ? `Storage: ${game.gameWeight}${game.developerName ? ` • Dev: ${game.developerName}` : ''}` 
-                                    : (game.developerName ? `Developer: ${game.developerName}` : 'Featured Game Specs'),
+                                  description: game.developerName ? `Developer: ${game.developerName}` : 'Featured Game Specs & AI Prompt details',
+                                  shortDescription: game.developerName ? `Developer: ${game.developerName}` : 'Featured Game Specs',
                                   author: game.developerName || 'GAMES TONIC',
                                   publishDate: 'FEATURED',
                                   category: 'FEATURED GAME',
-                                  tags: [game.gameWeight, 'FEATURED', 'GAME'].filter(Boolean) as string[],
-                                  buttonText: 'GET GAME',
-                                  buttonLink: game.gameLink,
+                                  tags: ['FEATURED', 'GAME'],
+                                  buttonText: 'GET PROMPT',
+                                  buttonLink: targetPromptLink,
+                                  extraLink: targetPromptLink,
                                   type: 'games',
                                   status: 'published',
                                   linkEnabled: true,
@@ -1267,17 +1267,17 @@ export default function App() {
                                   <ContentCard
                                     key={game.id}
                                     post={post}
-                                    onSelect={() => {
-                                      if (game.gameLink) handleActionClick(game.gameLink, true);
+                                    onSelect={(selectedP) => {
+                                      setSelectedPost(selectedP);
                                     }}
                                     onAction={(action, p, e) => {
                                       e.stopPropagation();
-                                      if (action === 'link' && game.gameLink) {
-                                        handleActionClick(game.gameLink, true);
+                                      if (action === 'link' && targetPromptLink) {
+                                        handleActionClick(targetPromptLink, true);
                                       } else if (action === 'share') {
-                                        const shareUrl = game.gameLink || window.location.href;
+                                        const shareUrl = targetPromptLink || window.location.href;
                                         navigator.clipboard.writeText(shareUrl);
-                                        alert('Game link copied to clipboard!');
+                                        alert('Prompt link copied to clipboard!');
                                       }
                                     }}
                                     actionButtonsEnabled={true}
