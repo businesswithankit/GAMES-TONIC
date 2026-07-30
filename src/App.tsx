@@ -1214,107 +1214,78 @@ export default function App() {
                           )}
                         </section>
 
-                        {/* FEATURED GAMES & SPECS SHOWCASE AREA (BELOW LATEST CONTENT GAMES) */}
-                        <section className="max-w-7xl mx-auto px-4 md:px-8 pt-4">
-                          <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-b from-white/[0.03] to-black/60 border border-white/10 relative overflow-hidden backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-                            {/* Background ambient lighting */}
-                            <div className="absolute -top-24 -left-24 w-72 h-72 bg-cyber-cyan/10 rounded-full blur-3xl pointer-events-none" />
-                            <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-cyber-purple/10 rounded-full blur-3xl pointer-events-none" />
-
-                            <div className="relative z-10 space-y-6">
-                              {/* Section Header */}
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2 text-cyber-cyan font-display font-bold text-xs tracking-wider uppercase">
-                                    <Sparkles className="w-4 h-4 text-cyber-cyan animate-pulse" />
-                                    <span>FEATURED GAMES & SPECS DIRECTORY</span>
-                                  </div>
-                                  <h3 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase text-glow">
-                                    FEATURED GAMES & DEVELOPERS
-                                  </h3>
-                                  <p className="text-xs text-gray-400 font-sans">
-                                    Handpicked game releases with verified specs, developer credentials, and direct access links.
-                                  </p>
-                                </div>
+                        {/* FEATURED GAMES & DEVELOPERS SHOWCASE AREA (MATCHING SITE CONTENT SECTIONS) */}
+                        <section className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 pt-4">
+                          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-cyber-cyan font-display font-bold text-xs tracking-wider uppercase">
+                                <Sparkles className="w-4 h-4 text-cyber-cyan animate-pulse" />
+                                <span>FEATURED SELECTION</span>
                               </div>
-
-                              {/* Featured Games Grid */}
-                              {featuredGames.length === 0 ? (
-                                <div className="p-8 text-center text-gray-500 font-sans border border-dashed border-white/10 rounded-2xl">
-                                  <p className="text-sm">No featured games currently listed.</p>
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                  {featuredGames.map((game) => (
-                                    <div 
-                                      key={game.id}
-                                      className="group bg-black/50 border border-white/10 hover:border-cyber-cyan/40 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col justify-between hover:shadow-[0_0_25px_rgba(0,240,255,0.15)]"
-                                    >
-                                      {/* Image container */}
-                                      <div className="relative aspect-video overflow-hidden bg-black/80">
-                                        <img 
-                                          src={game.imageLink || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80'} 
-                                          alt={game.gameName}
-                                          referrerPolicy="no-referrer"
-                                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                                        
-                                        {/* Game Weight Badge */}
-                                        {game.gameWeight && (
-                                          <div className="absolute top-3 right-3 px-2.5 py-1 bg-black/80 backdrop-blur-md border border-cyber-cyan/30 text-cyber-cyan font-mono text-[10px] font-bold rounded-lg uppercase tracking-wider shadow">
-                                            {game.gameWeight}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Card Details: Image, Game Name, Developer Name, Button */}
-                                      <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
-                                        <div className="space-y-1.5">
-                                          <h4 className="font-display font-black text-white text-base uppercase tracking-wider group-hover:text-cyber-cyan transition-colors line-clamp-1">
-                                            {game.gameName}
-                                          </h4>
-                                          {game.developerName && (
-                                            <p className="text-xs text-gray-400 font-sans flex items-center gap-1.5">
-                                              <span className="text-gray-500 font-mono text-[10px] uppercase tracking-wider">DEVELOPER:</span>
-                                              <span className="text-cyber-cyan font-bold">{game.developerName}</span>
-                                            </p>
-                                          )}
-                                        </div>
-
-                                        {/* Direct Game Link Button */}
-                                        <a
-                                          href={game.gameLink}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="w-full py-2.5 px-4 bg-cyber-cyan/10 hover:bg-cyber-cyan hover:text-black border border-cyber-cyan/40 text-cyber-cyan font-display font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 group/btn cursor-pointer shadow-md"
-                                        >
-                                          <span>GET GAME</span>
-                                          <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                        </a>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Platform Integrity Highlights Bar */}
-                              <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 text-xs font-mono text-gray-400">
-                                <div className="flex items-center gap-2">
-                                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                                  <span>100% Virus-Checked & Verified Packages</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle className="w-4 h-4 text-cyber-cyan" />
-                                  <span>Multi-Platform (PC, PS5, Xbox, Steam Deck)</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Sparkles className="w-4 h-4 text-cyber-purple" />
-                                  <span>Updated Daily by Community Creators</span>
-                                </div>
-                              </div>
+                              <h2 className="text-xl md:text-2xl font-display font-black text-white tracking-widest uppercase text-glow">
+                                🔥 FEATURED GAMES & DEVELOPERS
+                              </h2>
                             </div>
+                            <button 
+                              onClick={() => setActivePage('content')}
+                              className="group flex items-center gap-1.5 text-xs font-display font-bold text-cyber-cyan hover:underline hover:brightness-110 cursor-pointer"
+                            >
+                              <span>VIEW ALL →</span>
+                              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            </button>
                           </div>
+
+                          {featuredGames.length === 0 ? (
+                            <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
+                              No featured games currently listed. Check back soon for fresh additions!
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                              {featuredGames.map((game) => {
+                                const post: ContentPost = {
+                                  id: game.id,
+                                  title: game.gameName,
+                                  slug: game.id,
+                                  thumbnail: game.imageLink || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
+                                  banner: game.imageLink || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80',
+                                  description: game.gameWeight ? `Storage size: ${game.gameWeight}. Developer: ${game.developerName || 'N/A'}` : 'Featured Game Specs',
+                                  shortDescription: game.gameWeight 
+                                    ? `Storage: ${game.gameWeight}${game.developerName ? ` • Dev: ${game.developerName}` : ''}` 
+                                    : (game.developerName ? `Developer: ${game.developerName}` : 'Featured Game Specs'),
+                                  author: game.developerName || 'GAMES TONIC',
+                                  publishDate: 'FEATURED',
+                                  category: 'FEATURED GAME',
+                                  tags: [game.gameWeight, 'FEATURED', 'GAME'].filter(Boolean) as string[],
+                                  buttonText: 'GET GAME',
+                                  buttonLink: game.gameLink,
+                                  type: 'games',
+                                  status: 'published',
+                                  linkEnabled: true,
+                                  featured: true
+                                };
+                                return (
+                                  <ContentCard
+                                    key={game.id}
+                                    post={post}
+                                    onSelect={() => {
+                                      if (game.gameLink) handleActionClick(game.gameLink, true);
+                                    }}
+                                    onAction={(action, p, e) => {
+                                      e.stopPropagation();
+                                      if (action === 'link' && game.gameLink) {
+                                        handleActionClick(game.gameLink, true);
+                                      } else if (action === 'share') {
+                                        const shareUrl = game.gameLink || window.location.href;
+                                        navigator.clipboard.writeText(shareUrl);
+                                        alert('Game link copied to clipboard!');
+                                      }
+                                    }}
+                                    actionButtonsEnabled={true}
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
                         </section>
 
                         <AdPlacement position="homepage_latest_content_bottom" ads={ads} />
