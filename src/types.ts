@@ -87,15 +87,6 @@ export interface CustomPage {
   isLegal?: boolean; // dynamic flag to differentiate legal pages from general pages
 }
 
-export interface LegalPage {
-  title: string;
-  slug: string;
-  content: string;
-  seoTitle?: string;
-  seoDescription?: string;
-  status: 'published' | 'draft';
-}
-
 export interface CustomSocialLink {
   id: string;
   platform: string;
@@ -159,8 +150,6 @@ export interface FooterColumn {
 
 export interface SiteSettings {
   siteName?: string;
-  siteTagline?: string;
-  siteDescription?: string;
   browserTitle?: string;
   logoUrl?: string;
   faviconUrl?: string;
@@ -169,7 +158,6 @@ export interface SiteSettings {
   coverUrl?: string;
   iconUrl?: string;
   footerLinks?: any;
-  legalPages?: Record<string, LegalPage>;
   
   // SEO Meta tags
   metaTitle?: string;
@@ -180,17 +168,6 @@ export interface SiteSettings {
   ogImage?: string;
   twitterCard?: string;
 
-  // Analytics Management
-  analyticsCode?: string; // Google Analytics G-XXXXXX ID
-  gtmId?: string; // Google Tag Manager ID
-  gscVerification?: string; // Google Search Console metadata verification code
-  gscVerificationCode?: string; // Google Search Console verification code for tags
-  fbPixelId?: string; // Facebook Pixel ID
-  msClarityId?: string; // Microsoft Clarity project ID
-  customHeadScripts?: string;
-  customBodyScripts?: string;
-  customCss?: string;
-  customJs?: string;
   adsenseCode?: string; // Google AdSense code globally injected
 
   // Dynamic announcement system

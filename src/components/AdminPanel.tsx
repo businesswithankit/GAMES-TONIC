@@ -61,9 +61,8 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
-import { ContentPost, SiteSettings, NavMenu, ActionButton, LegalPage, VideoItem, Advertisement, AdSenseUnit, FeaturedGameItem } from '../types';
+import { ContentPost, SiteSettings, NavMenu, ActionButton, VideoItem, Advertisement, AdSenseUnit, FeaturedGameItem } from '../types';
 import AdSensePlacement, { ADSENSE_PREDEFINED_SLOTS } from './AdSensePlacement';
-import { generateAILegalContent } from '../lib/aiLegalGenerator';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -86,7 +85,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   const [authLoading, setAuthLoading] = useState(true);
 
   // Primary Sections Tab Selector
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'post-form' | 'featured-games' | 'featured-game-form' | 'videos' | 'video-form' | 'buttons' | 'menus' | 'footer' | 'legal' | 'home-builder' | 'announcements' | 'socials' | 'settings' | 'custom-pages' | 'counters' | 'sponsor-ads' | 'adsense'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'post-form' | 'featured-games' | 'featured-game-form' | 'videos' | 'video-form' | 'buttons' | 'menus' | 'footer' | 'home-builder' | 'announcements' | 'socials' | 'settings' | 'custom-pages' | 'counters' | 'sponsor-ads' | 'adsense'>('dashboard');
 
   // Loaded Content States
   const [posts, setPosts] = useState<ContentPost[]>([]);
@@ -246,17 +245,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     copyright: '',
     about: '',
     support: ''
-  });
-
-  // LEGAL PAGE EDIT STATE
-  const [selectedLegalKey, setSelectedLegalKey] = useState<string>('privacy');
-  const [legalForm, setLegalForm] = useState<LegalPage>({
-    title: '',
-    slug: '',
-    content: '',
-    seoTitle: '',
-    seoDescription: '',
-    status: 'published'
   });
 
   // HERO SECTION EDIT STATE
@@ -841,22 +829,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       clearInterval(timer);
     };
   }, [posts, videos, settingsForm]);
-
-  // Sync current selected legal editor data
-  useEffect(() => {
-    if (settingsForm.legalPages && settingsForm.legalPages[selectedLegalKey]) {
-      setLegalForm(settingsForm.legalPages[selectedLegalKey]);
-    } else {
-      setLegalForm({
-        title: selectedLegalKey.toUpperCase(),
-        slug: selectedLegalKey,
-        content: '',
-        seoTitle: '',
-        seoDescription: '',
-        status: 'published'
-      });
-    }
-  }, [selectedLegalKey, settingsForm]);
 
   // Sync current selected Button configuration data
   useEffect(() => {
@@ -1460,32 +1432,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       alert("Google AdSense settings updated live successfully!");
     } catch (err: any) {
       alert("Failed to save Google AdSense configurations: " + err.message);
-    }
-    setIsLoading(false);
-  };
-
-  // --- LEGAL SECTION SAVING ---
-  const handleLegalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const currentLegals = settingsForm.legalPages ? { ...settingsForm.legalPages } : {};
-      currentLegals[selectedLegalKey] = {
-        title: legalForm.title,
-        slug: selectedLegalKey,
-        content: legalForm.content,
-        seoTitle: legalForm.seoTitle,
-        seoDescription: legalForm.seoDescription,
-        status: legalForm.status || 'published'
-      };
-
-      const finalSettings = { ...settingsForm, legalPages: currentLegals };
-      await set(dbRef(db, 'settings'), finalSettings);
-      setSettingsForm(finalSettings);
-      setSiteSettings(finalSettings);
-      alert(`Legal template page [${selectedLegalKey}] updated successfully.`);
-    } catch (err: any) {
-      alert("Legal document commit crashed: " + err.message);
     }
     setIsLoading(false);
   };
@@ -2098,7 +2044,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     { key: 'custom-pages', label: 'Custom Page Builder', icon: FileText, color: 'text-cyber-cyan' },
     { key: 'counters', label: 'Animated Counters', icon: Grid, color: 'text-cyber-magenta' },
     { key: 'footer', label: 'Footer Layout', icon: Grid, color: 'text-cyber-magenta' },
-    { key: 'legal', label: 'Legal Page Hub', icon: Globe, color: 'text-cyber-magenta' },
     { key: 'home-builder', label: 'Home Page Builder', icon: Sparkles, color: 'text-cyber-cyan' },
     { key: 'announcements', label: 'Announcements System', icon: Radio, color: 'text-pink-500' },
     { key: 'socials', label: 'Social Platforms', icon: Share2, color: 'text-cyber-purple' },
@@ -3651,114 +3596,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
             </div>
           )}
 
-          {/* TAB 9: EDIT LEGAL PAGES */}
-          {activeTab === 'legal' && (() => {
-            const generatedDoc = generateAILegalContent(selectedLegalKey, settingsForm);
-            return (
-              <div className="space-y-6 animate-fade-in max-w-5xl">
-                <div>
-                  <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Legal compliance document generator</h2>
-                  <p className="text-xs text-gray-400 mt-1">AI Engine automatically generates compliant legal pages using your Site Settings parameters (Site Name, URL, Contact Email, etc.).</p>
-                </div>
-
-                {/* AI Legal Engine Status Banner */}
-                <div className="p-4 bg-cyber-cyan/10 border border-cyber-cyan/30 rounded-xl space-y-2">
-                  <div className="flex items-center gap-2 text-cyber-cyan">
-                    <Sparkles className="w-5 h-5 animate-pulse" />
-                    <span className="font-display font-bold text-xs uppercase tracking-wider">AI AUTOMATED LEGAL CONTENT GENERATION ACTIVE</span>
-                  </div>
-                  <p className="text-xs text-gray-300 font-sans leading-relaxed">
-                    Legal documents for <strong className="text-white">{settingsForm.siteName || 'Games Tonic'}</strong> are automatically compiled in real-time from your site configuration. Manual text editing has been disabled to preserve automated compliance synchronization.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                  <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1.5 font-bold">Select page template to inspect</label>
-                  <select
-                    value={selectedLegalKey}
-                    onChange={(e) => setSelectedLegalKey(e.target.value)}
-                    className="px-4 py-2 bg-black/60 border border-white/10 text-xs text-cyber-cyan font-bold rounded-xl focus:outline-none"
-                  >
-                    <option value="privacy">Privacy Policy</option>
-                    <option value="terms">Terms & Conditions</option>
-                    <option value="disclaimer">Compliance Disclaimer</option>
-                    <option value="cookie">Cookie Policy</option>
-                    <option value="dmca">DMCA Guidelines</option>
-                    <option value="about">About Us Section</option>
-                    <option value="contact">Contact Directory Info</option>
-                    <option value="support">Help & Support Policy</option>
-                  </select>
-                </div>
-
-                <form onSubmit={handleLegalSubmit} className="space-y-6 font-sans text-sm">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">Page Title Heading</label>
-                      <input
-                        type="text"
-                        required
-                        value={legalForm.title || generatedDoc.title}
-                        onChange={(e) => setLegalForm({ ...legalForm, title: e.target.value })}
-                        placeholder="e.g. PRIVACY POLICIES & SECURITY RULES"
-                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">Visibility Status Priority</label>
-                      <select
-                        value={legalForm.status || 'published'}
-                        onChange={(e) => setLegalForm({ ...legalForm, status: e.target.value as any })}
-                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl"
-                      >
-                        <option value="published">Live (Published)</option>
-                        <option value="draft">Invisible (Draft)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">SEO Title Headline Override</label>
-                      <input
-                        type="text"
-                        value={legalForm.seoTitle || generatedDoc.seoTitle}
-                        onChange={(e) => setLegalForm({ ...legalForm, seoTitle: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold">SEO Brief Description Excerpt</label>
-                      <input
-                        type="text"
-                        value={legalForm.seoDescription || generatedDoc.seoDescription}
-                        onChange={(e) => setLegalForm({ ...legalForm, seoDescription: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* AI Generated Content Live Preview (Read-only) */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-[10px] uppercase font-mono text-cyber-cyan font-bold">Live AI-Generated Legal Document Preview</label>
-                      <span className="text-[10px] font-mono text-gray-400">Auto-compiled from Site Settings</span>
-                    </div>
-                    <div className="p-4 bg-black/80 border border-white/10 rounded-xl font-mono text-xs text-gray-300 max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed select-text">
-                      {generatedDoc.content}
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-gradient-to-r from-cyber-cyan to-cyber-purple text-black font-display font-black text-xs uppercase cursor-pointer hover:brightness-125 rounded-lg transition-all"
-                  >
-                    SAVE LEGAL METADATA PARAMETERS
-                  </button>
-                </form>
-              </div>
-            );
-          })()}
-
           {/* TAB 10: HOME PAGE BUILDER */}
           {activeTab === 'home-builder' && (
             <div className="space-y-8 animate-fade-in max-w-5xl text-xs">
@@ -5187,33 +5024,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                   </div>
                 </div>
 
-                {/* ADDITIONAL SEARCH & BRANDING DETAILS */}
-                <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4">
-                  <p className="text-xs font-display font-black text-white uppercase tracking-wider block">Expanded site Branding & Taglines</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase text-gray-400 mb-1">Site Tagline</label>
-                      <input
-                        type="text"
-                        value={settingsForm.siteTagline || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, siteTagline: e.target.value })}
-                        placeholder="Premium Hub for Custom Video Game Mods & Media"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase text-gray-400 mb-1">Site Subheader Description</label>
-                      <input
-                        type="text"
-                        value={settingsForm.siteDescription || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, siteDescription: e.target.value })}
-                        placeholder="Get instant access to game enhancements, videos, and dynamic forums..."
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {/* CONTACT PAGE SPECIFICATIONS */}
                 <div className="p-5 bg-white/[0.01] border border-white/5 rounded-2xl space-y-4 font-sans text-xs text-left">
                   <p className="text-xs font-display font-black text-cyber-cyan uppercase tracking-wider block">Contact Page Dynamic Information</p>
@@ -5353,102 +5163,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                         onChange={(e) => setSettingsForm({ ...settingsForm, browserTitle: e.target.value })}
                         placeholder="e.g. Games Tonic | HQ Mods"
                         className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* SCRIPTS AND TRACKERS */}
-                <div className="p-5 bg-[#0d0d14] border border-white/5 rounded-2xl space-y-4">
-                  <p className="text-xs font-display font-black text-cyber-cyan uppercase tracking-wider block">Analytics & Custom Tracking pixels</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4 border-b border-white/5">
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Google Analytics Key ID</label>
-                      <input
-                        type="text"
-                        value={settingsForm.analyticsCode || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, analyticsCode: e.target.value })}
-                        placeholder="G-XXXXXX"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Google Tag Manager ID</label>
-                      <input
-                        type="text"
-                        value={settingsForm.gtmId || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, gtmId: e.target.value })}
-                        placeholder="GTM-XXXXXX"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Search Console Token</label>
-                      <input
-                        type="text"
-                        value={settingsForm.gscVerificationCode || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, gscVerificationCode: e.target.value })}
-                        placeholder="google-site-verification..."
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Facebook pixel code</label>
-                      <input
-                        type="text"
-                        value={settingsForm.fbPixelId || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, fbPixelId: e.target.value })}
-                        placeholder="e.g. 1290382903"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-xs font-display font-black text-cyber-magenta uppercase tracking-wider block pt-2">Custom Code Script, CSS, & Javascript injections</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Custom Header HTML Scripts (Injection inside &lt;head&gt;)</label>
-                      <textarea
-                        rows={4}
-                        value={settingsForm.customHeadScripts || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, customHeadScripts: e.target.value })}
-                        placeholder="e.g. <script src='https://track.com/sdk.js'></script>"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Custom Body HTML Scripts (Injection inside &lt;body&gt;)</label>
-                      <textarea
-                        rows={4}
-                        value={settingsForm.customBodyScripts || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, customBodyScripts: e.target.value })}
-                        placeholder="e.g. <noscript>...</noscript>"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1">Custom Raw CSS styles (&lt;style&gt; block)</label>
-                      <textarea
-                        rows={5}
-                        value={settingsForm.customCss || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, customCss: e.target.value })}
-                        placeholder="body { filter: hue-rotate(10deg); }"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-mono text-gray-400 mb-1 font-bold text-cyber-cyan animate-pulse">Custom raw JavaScript execution (&lt;script&gt; evaluation)</label>
-                      <textarea
-                        rows={5}
-                        value={settingsForm.customJs || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, customJs: e.target.value })}
-                        placeholder="console.log('Admin controls verified...');"
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-lg text-white font-mono text-xs"
                       />
                     </div>
                   </div>

@@ -27,8 +27,6 @@ const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [];
 // Default Fallback Settings if Realtime DB doesn't have settings stored yet
 const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "GAMES TONIC OFFICIAL",
-  siteTagline: "Next-Gen Modification Index & Cyber Intelligence",
-  siteDescription: "Discover advanced gaming enhancements, utility scripts, and real-time community dispatches.",
   logoUrl: "",
   faviconUrl: "",
   
@@ -109,7 +107,6 @@ const DEFAULT_SITE_SETTINGS: SiteSettings = {
     { id: 'm6', name: 'About Us', link: 'about', icon: 'HelpCircle', position: 6 },
     { id: 'm7', name: 'Contact Us', link: 'contact', icon: 'Mail', position: 7 },
   ],
-  legalPages: {},
   contactPage: {
     title: 'CONTACT DIRECTORY',
     description: 'Have a proposal, issues, or want to sponsor Games Tonic Official? Send a query securely.',
@@ -527,7 +524,6 @@ export default function App() {
           socialLinks: { ...DEFAULT_SITE_SETTINGS.socialLinks, ...(data.socialLinks || {}) },
           footerLinks: { ...DEFAULT_SITE_SETTINGS.footerLinks, ...(data.footerLinks || {}) },
           buttons: { ...DEFAULT_SITE_SETTINGS.buttons, ...(data.buttons || {}) },
-          legalPages: { ...DEFAULT_SITE_SETTINGS.legalPages, ...(data.legalPages || {}) },
           contactPage: { ...DEFAULT_SITE_SETTINGS.contactPage, ...(data.contactPage || {}) },
           menus: parseArray(data.menus, DEFAULT_SITE_SETTINGS.menus || []),
           categories: parseArray(data.categories, DEFAULT_SITE_SETTINGS.categories),
@@ -538,15 +534,7 @@ export default function App() {
           homeSections: parseArray(data.homeSections, DEFAULT_SITE_SETTINGS.homeSections || []),
           footerColumns: parseArray(data.footerColumns, DEFAULT_SITE_SETTINGS.footerColumns || []),
           footer: { ...DEFAULT_SITE_SETTINGS.footer, ...(data.footer || {}) },
-          siteTagline: data.siteTagline || '',
-          siteDescription: data.siteDescription || '',
-          browserTitle: data.browserTitle || '',
-          gtmId: data.gtmId || '',
-          gscVerificationCode: data.gscVerificationCode || '',
-          fbPixelId: data.fbPixelId || '',
-          customBodyScripts: data.customBodyScripts || '',
-          customCss: data.customCss || '',
-          customJs: data.customJs || ''
+          browserTitle: data.browserTitle || ''
         });
       } else {
         // Seed first-time settings in DB for direct management
@@ -659,7 +647,7 @@ export default function App() {
       metaDesc.setAttribute('name', 'description');
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute('content', siteSettings.metaDescription || siteSettings.siteDescription || 'Custom Video Game Mods Hub');
+    metaDesc.setAttribute('content', siteSettings.metaDescription || 'Custom Video Game Mods Hub');
 
     // SEO Keywords
     let metaKeywords = document.querySelector('meta[name="keywords"]');
@@ -670,20 +658,7 @@ export default function App() {
     }
     metaKeywords.setAttribute('content', siteSettings.metaKeywords || 'games, mods, scripts, cheats');
 
-    // 3. Search Console Verification Header
-    let metaGsc = document.querySelector('meta[name="google-site-verification"]');
-    if (siteSettings.gscVerificationCode) {
-      if (!metaGsc) {
-        metaGsc = document.createElement('meta');
-        metaGsc.setAttribute('name', 'google-site-verification');
-        document.head.appendChild(metaGsc);
-      }
-      metaGsc.setAttribute('content', siteSettings.gscVerificationCode);
-    } else if (metaGsc) {
-      metaGsc.remove();
-    }
-
-    // 4. Dynamic Favicon Management URL loader
+    // Dynamic Favicon Management URL loader
     let faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
     if (!faviconLink) {
       faviconLink = document.createElement('link');
@@ -692,107 +667,6 @@ export default function App() {
     }
     if (siteSettings.faviconUrl) {
       faviconLink.setAttribute('href', siteSettings.faviconUrl);
-    }
-
-    // 5. Raw custom CSS styles inject builder
-    let customStyleTag = document.getElementById('games-tonic-custom-css');
-    if (!customStyleTag) {
-      customStyleTag = document.createElement('style');
-      customStyleTag.id = 'games-tonic-custom-css';
-      document.head.appendChild(customStyleTag);
-    }
-    customStyleTag.textContent = siteSettings.customCss || '';
-
-    // 6. Evaluators for raw custom JavaScript script tags
-    const existingScript = document.getElementById('games-tonic-custom-js');
-    if (existingScript) existingScript.remove();
-    
-    if (siteSettings.customJs) {
-      const scriptTag = document.createElement('script');
-      scriptTag.id = 'games-tonic-custom-js';
-      scriptTag.type = 'text/javascript';
-      scriptTag.textContent = `
-        try {
-          ${siteSettings.customJs}
-        } catch (e) {
-          console.warn('Custom Website configuration JS exception:', e);
-        }
-      `;
-      document.body.appendChild(scriptTag);
-    }
-
-    // 7. Trackers & Tag Managers (GA, GTM, Pixel, custom head scripts)
-    const trackingClass = 'gt-dynamic-tracking-injections';
-    document.querySelectorAll('.' + trackingClass).forEach(el => el.remove());
-
-    // Injection for custom scripts head tag
-    if (siteSettings.customHeadScripts) {
-      const container = document.createElement('div');
-      container.className = trackingClass;
-      container.style.display = 'none';
-      container.innerHTML = siteSettings.customHeadScripts;
-      document.head.appendChild(container);
-    }
-
-    // Injection for custom scripts body tag
-    if (siteSettings.customBodyScripts) {
-      const container = document.createElement('div');
-      container.className = trackingClass;
-      container.style.display = 'none';
-      container.innerHTML = siteSettings.customBodyScripts;
-      document.body.appendChild(container);
-    }
-
-    // GA GTAG script builder
-    if (siteSettings.analyticsCode) {
-      const scriptGa = document.createElement('script');
-      scriptGa.className = trackingClass;
-      scriptGa.async = true;
-      scriptGa.src = `https://www.googletagmanager.com/gtag/js?id=${siteSettings.analyticsCode}`;
-      document.head.appendChild(scriptGa);
-
-      const scriptGaExec = document.createElement('script');
-      scriptGaExec.className = trackingClass;
-      scriptGaExec.textContent = `
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', '${siteSettings.analyticsCode}');
-      `;
-      document.head.appendChild(scriptGaExec);
-    }
-
-    // GTM script builder
-    if (siteSettings.gtmId) {
-      const scriptGtmExec = document.createElement('script');
-      scriptGtmExec.className = trackingClass;
-      scriptGtmExec.textContent = `
-        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','${siteSettings.gtmId}');
-      `;
-      document.head.appendChild(scriptGtmExec);
-    }
-
-    // FB Pixel script builder
-    if (siteSettings.fbPixelId) {
-      const scriptFb = document.createElement('script');
-      scriptFb.className = trackingClass;
-      scriptFb.textContent = `
-        !function(f,b,e,v,n,t,s)
-        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-        n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t,s)}(window,document,'script',
-        'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '${siteSettings.fbPixelId}');
-        fbq('track', 'PageView');
-      `;
-      document.head.appendChild(scriptFb);
     }
   }, [siteSettings]);
 
@@ -1845,7 +1719,7 @@ export default function App() {
           <div className="space-y-4 text-left">
             <h4 className="font-display font-black text-lg text-white tracking-widest uppercase">{siteSettings.siteName || 'GAMES TONIC'}</h4>
             <p className="text-xs text-gray-400 font-sans leading-relaxed">
-              {siteSettings.footerLinks?.about || siteSettings.siteDescription}
+              {siteSettings.footerLinks?.about || 'Discover advanced gaming enhancements, utility scripts, and real-time community dispatches.'}
             </p>
             <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 max-w-max">
               <span 

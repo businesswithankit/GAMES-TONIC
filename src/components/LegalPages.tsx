@@ -42,16 +42,8 @@ export function DynamicPageRenderer({ slug, onBack, siteSettings, onNavigate }: 
   const isBuiltInLegalSlug = ['privacy', 'terms', 'disclaimer', 'cookie', 'dmca', 'about', 'support'].includes(slug);
   const aiDoc = isBuiltInLegalSlug ? generateAILegalContent(slug, siteSettings) : null;
 
-  // Find the page either in legalPages (takes priority) or customPages inside siteSettings
-  let page = siteSettings.legalPages?.[slug] ? {
-    id: `l_${slug}`,
-    title: siteSettings.legalPages[slug].title || aiDoc?.title || `${slug.toUpperCase()} INFORMATION`,
-    slug: slug,
-    content: siteSettings.legalPages[slug].content || aiDoc?.content || '',
-    seoTitle: siteSettings.legalPages[slug].seoTitle || aiDoc?.seoTitle,
-    seoDescription: siteSettings.legalPages[slug].seoDescription || aiDoc?.seoDescription,
-    status: siteSettings.legalPages[slug].status || 'published'
-  } as any : (aiDoc ? {
+  // Automatically use AI-generated content for built-in legal pages, otherwise check customPages
+  let page = aiDoc ? {
     id: `l_${slug}`,
     title: aiDoc.title,
     slug: slug,
@@ -59,7 +51,7 @@ export function DynamicPageRenderer({ slug, onBack, siteSettings, onNavigate }: 
     seoTitle: aiDoc.seoTitle,
     seoDescription: aiDoc.seoDescription,
     status: 'published'
-  } as any : undefined);
+  } as any : undefined;
 
   if (!page) {
     page = siteSettings.customPages?.find(p => p.slug === slug);
