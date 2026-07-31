@@ -21,6 +21,13 @@ export interface ContentPost {
   seoDescription?: string;
   extraLink?: string; // e.g. mod download link, game steam link, registration link
   viewsCount?: number;
+  developerName?: string;
+  developerEmail?: string;
+  developerWebsite?: string;
+  websiteLink?: string;
+  version?: string;
+  updatedDate?: string;
+  promptLink?: string;
 }
 
 export interface NavMenu {
@@ -107,6 +114,14 @@ export interface FeaturedGameItem {
   gameLink: string;
   promptLink?: string;
   imageLink: string;
+  thumbnail?: string;
+  shortDescription?: string;
+  description?: string;
+  category?: string;
+  version?: string;
+  publishDate?: string;
+  updatedDate?: string;
+  tags?: string[] | string;
   status?: 'published' | 'draft';
   position?: number;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Tag, User, Eye, Download, ExternalLink, CalendarDays, MapPin, Share2, Copy, Check, MessageCircle, Send } from 'lucide-react';
+import { Calendar, Tag, User, Eye, Download, ExternalLink, CalendarDays, MapPin, Share2, Copy, Check, MessageCircle, Send, Globe, Mail, Code, Info } from 'lucide-react';
 import { ContentPost, Advertisement, AdSenseUnit } from '../types';
 import { db } from '../lib/firebase';
 import { ref, runTransaction } from 'firebase/database';
@@ -23,11 +23,36 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
   const shareUrl = window.location.href;
   const shareTitle = post.title;
 
-  if (post.category === 'FEATURED GAME') {
-    const targetLink = post.buttonLink || post.extraLink;
+  const handleShareClick = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: post.shortDescription || '',
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        // Fallback to manual list if user cancels or error occurs
+      }
+    }
+    setShowShareModal(true);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (post.category === 'FEATURED GAME' || post.featured) {
+    const targetLink = post.promptLink || post.buttonLink || post.extraLink;
+    const devName = post.developerName || (post.author && post.author !== 'GAMES TONIC' ? post.author : '');
+    const hasTags = Array.isArray(post.tags) && post.tags.length > 0;
+
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto bg-cyber-dark/95 backdrop-blur-xl animate-fade-in pb-16 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-3xl glass-panel-neon border border-cyber-cyan/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,240,255,0.15)] bg-[#0c0c16] font-sans my-auto">
+        <div className="relative w-full max-w-4xl glass-panel-neon border border-cyber-cyan/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,240,255,0.15)] bg-[#0c0c16] font-sans my-auto">
           
           {/* Floating Close Button */}
           <button
@@ -39,33 +64,189 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
           </button>
 
           {/* Game Image */}
-          <div className="relative w-full aspect-video max-h-[380px] overflow-hidden bg-black">
-            <img
-              src={post.banner || post.thumbnail || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80'}
-              alt={post.title}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c16] via-transparent to-black/30" />
-            
-            <div className="absolute bottom-4 left-6 right-6">
-              <span className="text-[10px] uppercase font-display font-bold tracking-widest text-cyber-cyan bg-cyber-cyan/15 border border-cyber-cyan/30 px-3 py-1 rounded-full">
-                FEATURED GAME
-              </span>
+          {(post.banner || post.thumbnail) && (
+            <div className="relative w-full aspect-video max-h-[420px] overflow-hidden bg-black">
+              <img
+                src={post.banner || post.thumbnail}
+                alt={post.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c16] via-transparent to-black/30" />
+              
+              <div className="absolute bottom-4 left-6 right-6 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {post.category && (
+                    <span className="text-[10px] uppercase font-display font-bold tracking-widest text-cyber-cyan bg-cyber-cyan/15 border border-cyber-cyan/30 px-3 py-1 rounded-full">
+                      {post.category}
+                    </span>
+                  )}
+                  {post.version && (
+                    <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-amber-400 bg-amber-400/15 border border-amber-400/30 px-2.5 py-1 rounded-full">
+                      v{post.version}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleShareClick}
+                  className="px-3 py-1.5 bg-black/80 backdrop-blur-md border border-white/20 hover:border-cyber-cyan text-white text-xs font-mono font-bold rounded-lg uppercase flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-cyber-cyan" />
+                  <span>SHARE</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Details Content */}
           <div className="p-6 md:p-8 space-y-6">
-            {/* Game Name */}
-            <h1 className="text-2xl md:text-4xl font-display font-black text-white tracking-wider uppercase text-glow">
-              {post.title}
-            </h1>
-
-            {/* Description */}
-            <div className="prose prose-invert max-w-none text-gray-300 font-sans text-sm md:text-base leading-relaxed bg-white/[0.02] p-4 rounded-xl border border-white/5">
-              {post.description || post.shortDescription}
+            {/* Game Name & Share */}
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <h1 className="text-2xl md:text-4xl font-display font-black text-white tracking-wider uppercase text-glow flex-1">
+                {post.title}
+              </h1>
+              {!(post.banner || post.thumbnail) && (
+                <button
+                  onClick={handleShareClick}
+                  className="px-3 py-1.5 bg-white/5 border border-white/10 hover:border-cyber-cyan text-white text-xs font-mono font-bold rounded-lg uppercase flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-cyber-cyan" />
+                  <span>SHARE</span>
+                </button>
+              )}
             </div>
+
+            {/* Short Description */}
+            {post.shortDescription && (
+              <div className="text-base md:text-lg text-cyber-cyan/90 font-sans font-medium leading-relaxed bg-cyber-cyan/5 border-l-4 border-cyber-cyan p-4 rounded-r-xl">
+                {post.shortDescription}
+              </div>
+            )}
+
+            {/* Full Description */}
+            {post.description && post.description !== post.shortDescription && (
+              <div className="prose prose-invert max-w-none text-gray-300 font-sans text-sm md:text-base leading-relaxed bg-white/[0.02] p-5 rounded-xl border border-white/5 whitespace-pre-wrap">
+                {post.description}
+              </div>
+            )}
+
+            {/* Metadata Grid (Developer, Website, Dates, Thumbnail URL preview) */}
+            {(devName || post.developerEmail || post.developerWebsite || post.websiteLink || post.publishDate || post.updatedDate || post.thumbnail) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-black/40 p-5 rounded-2xl border border-white/5 text-xs text-gray-300 font-sans">
+                {devName && (
+                  <div className="flex items-center gap-2.5">
+                    <User className="w-4 h-4 text-cyber-cyan shrink-0" />
+                    <div className="truncate">
+                      <span className="text-gray-500 block text-[10px] uppercase">Developer Name</span>
+                      <span className="font-semibold text-white">{devName}</span>
+                    </div>
+                  </div>
+                )}
+
+                {post.developerEmail && (
+                  <div className="flex items-center gap-2.5">
+                    <Mail className="w-4 h-4 text-cyber-magenta shrink-0" />
+                    <div className="truncate">
+                      <span className="text-gray-500 block text-[10px] uppercase">Developer Email</span>
+                      <a href={`mailto:${post.developerEmail}`} className="text-cyber-cyan hover:underline truncate">
+                        {post.developerEmail}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {post.developerWebsite && (
+                  <div className="flex items-center gap-2.5">
+                    <Globe className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div className="truncate">
+                      <span className="text-gray-500 block text-[10px] uppercase">Developer Website</span>
+                      <a
+                        href={post.developerWebsite}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-cyber-cyan hover:underline truncate block"
+                      >
+                        {post.developerWebsite}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {post.websiteLink && (
+                  <div className="flex items-center gap-2.5">
+                    <ExternalLink className="w-4 h-4 text-cyber-cyan shrink-0" />
+                    <div className="truncate">
+                      <span className="text-gray-500 block text-[10px] uppercase">External Website Link</span>
+                      <a
+                        href={post.websiteLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-cyber-cyan hover:underline truncate block"
+                      >
+                        {post.websiteLink}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {post.publishDate && (
+                  <div className="flex items-center gap-2.5">
+                    <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div>
+                      <span className="text-gray-500 block text-[10px] uppercase">Created Date</span>
+                      <span className="text-gray-300">{post.publishDate}</span>
+                    </div>
+                  </div>
+                )}
+
+                {post.updatedDate && (
+                  <div className="flex items-center gap-2.5">
+                    <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div>
+                      <span className="text-gray-500 block text-[10px] uppercase">Updated Date</span>
+                      <span className="text-gray-300">{post.updatedDate}</span>
+                    </div>
+                  </div>
+                )}
+
+                {post.thumbnail && post.thumbnail !== post.banner && (
+                  <div className="flex items-center gap-2.5 sm:col-span-2 lg:col-span-3">
+                    <Info className="w-4 h-4 text-gray-400 shrink-0" />
+                    <div className="truncate">
+                      <span className="text-gray-500 block text-[10px] uppercase">Thumbnail URL</span>
+                      <a
+                        href={post.thumbnail}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-white truncate block text-[11px]"
+                      >
+                        {post.thumbnail}
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Tags */}
+            {hasTags && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Tag className="w-4 h-4 text-cyber-cyan mr-1" />
+                {post.tags.map((t, idx) => (
+                  <span
+                    key={idx}
+                    onClick={() => {
+                      onClose();
+                      onTagClick?.(t);
+                    }}
+                    className="px-3 py-1 bg-white/5 border border-white/10 hover:border-cyber-cyan rounded-lg text-xs font-mono text-gray-300 uppercase transition-colors cursor-pointer"
+                  >
+                    #{t}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Prompt Link Button */}
             {targetLink && (
@@ -88,32 +269,41 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
               </div>
             )}
           </div>
+
+          {/* Share Modal */}
+          {showShareModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <div className="w-full max-w-md bg-[#0c0c16] border border-cyber-cyan/40 rounded-2xl p-6 shadow-2xl relative">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+                <h3 className="text-lg font-display font-bold text-white uppercase tracking-wider mb-4">
+                  Share Featured Game
+                </h3>
+                <div className="flex items-center gap-2 bg-black/60 border border-white/10 rounded-xl p-2.5">
+                  <input
+                    type="text"
+                    readOnly
+                    value={shareUrl}
+                    className="w-full bg-transparent text-xs text-gray-300 focus:outline-none"
+                  />
+                  <button
+                    onClick={copyToClipboard}
+                    className="px-3 py-1.5 bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan rounded-lg text-xs font-mono font-bold uppercase hover:bg-cyber-cyan hover:text-black transition-colors shrink-0"
+                  >
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
   }
-
-  const handleShareClick = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: post.shortDescription || '',
-          url: shareUrl,
-        });
-        return;
-      } catch (err) {
-        // Fallback to manual list if user cancels or error occurs
-      }
-    }
-    setShowShareModal(true);
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-cyber-dark/95 backdrop-blur-xl animate-fade-in pb-16">

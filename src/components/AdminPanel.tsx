@@ -96,6 +96,45 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   const [settingsForm, setSettingsForm] = useState<SiteSettings>(siteSettings);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Animated Toast Notifications
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  const verifyAuthBeforeWrite = (): boolean => {
+    if (authLoading) {
+      showToast("Authentication is still initializing. Please wait...", "warning");
+      return false;
+    }
+    if (!auth.currentUser || !user) {
+      showToast("Authentication expired. Please log in again.", "error");
+      setUser(null);
+      return false;
+    }
+    return true;
+  };
+
+  const validateUrl = (url?: string): boolean => {
+    if (!url || !url.trim()) return true;
+    try {
+      new URL(url.trim());
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const validateEmail = (emailStr?: string): boolean => {
+    if (!emailStr || !emailStr.trim()) return true;
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(emailStr.trim());
+  };
+
   // FEATURED GAMES CRUD FORM STATE
   const [selectedFeaturedGameId, setSelectedFeaturedGameId] = useState<string | null>(null);
   const [featuredGameForm, setFeaturedGameForm] = useState<Omit<FeaturedGameItem, 'id'>>({
@@ -106,6 +145,14 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     gameLink: '',
     promptLink: '',
     imageLink: '',
+    thumbnail: '',
+    shortDescription: '',
+    description: '',
+    category: 'FEATURED GAME',
+    version: '1.0',
+    publishDate: '',
+    updatedDate: '',
+    tags: '',
     status: 'published',
     position: 0
   });
@@ -554,19 +601,47 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   // FEATURED GAMES CRUD HANDLERS
   const handleFeaturedGameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!verifyAuthBeforeWrite()) return;
+
     if (!featuredGameForm.gameName.trim() || !featuredGameForm.imageLink.trim() || !featuredGameForm.gameLink.trim()) {
-      alert("Game Name, Image Link, and Game Link are required!");
+      showToast("Game Name, Image Link, and Game Link are required!", "error");
       return;
     }
+
+    if (!validateUrl(featuredGameForm.imageLink) || !validateUrl(featuredGameForm.gameLink) || !validateUrl(featuredGameForm.promptLink) || !validateUrl(featuredGameForm.developerWebsite) || !validateUrl(featuredGameForm.thumbnail)) {
+      showToast("Please enter valid URL formats for links/images.", "error");
+      return;
+    }
+
+    if (!validateEmail(featuredGameForm.developerEmail)) {
+      showToast("Please enter a valid developer email address.", "error");
+      return;
+    }
+
+    const isDuplicateName = featuredGames.some(
+      g => g.id !== selectedFeaturedGameId && g.gameName.trim().toLowerCase() === featuredGameForm.gameName.trim().toLowerCase()
+    );
+    if (isDuplicateName) {
+      showToast("A Featured Game with this name already exists. Please use a unique Game Name.", "error");
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const nowStr = new Date().toISOString().split('T')[0];
+      const payload = {
+        ...featuredGameForm,
+        updatedDate: nowStr,
+        publishDate: featuredGameForm.publishDate || nowStr
+      };
+
       if (selectedFeaturedGameId) {
-        await set(dbRef(db, `featured_games/${selectedFeaturedGameId}`), featuredGameForm);
-        alert("Featured Game record updated successfully!");
+        await set(dbRef(db, `featured_games/${selectedFeaturedGameId}`), payload);
+        showToast("Featured Game record updated successfully!", "success");
       } else {
         const nextRef = push(dbRef(db, 'featured_games'));
-        await set(nextRef, featuredGameForm);
-        alert("New Featured Game entry created successfully!");
+        await set(nextRef, payload);
+        showToast("New Featured Game entry created successfully!", "success");
       }
       setFeaturedGameForm({
         gameName: '',
@@ -576,13 +651,28 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
         gameLink: '',
         promptLink: '',
         imageLink: '',
+        thumbnail: '',
+        shortDescription: '',
+        description: '',
+        category: 'FEATURED GAME',
+        version: '1.0',
+        publishDate: '',
+        updatedDate: '',
+        tags: '',
         status: 'published',
         position: 0
       });
       setSelectedFeaturedGameId(null);
       setActiveTab('featured-games');
     } catch (err: any) {
-      alert("Error saving Featured Game: " + err.message);
+      const msg = err?.message || '';
+      if (msg.includes('PERMISSION_DENIED') || msg.includes('Permission denied')) {
+        showToast("Permission denied: You must be signed in as an authorized admin to modify Featured Games.", "error");
+      } else if (msg.includes('network') || msg.includes('NETWORK')) {
+        showToast("Network error: Could not connect to database.", "error");
+      } else {
+        showToast("Error saving Featured Game: " + msg, "error");
+      }
     }
     setIsLoading(false);
   };
@@ -597,6 +687,14 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       gameLink: item.gameLink || '',
       promptLink: item.promptLink || '',
       imageLink: item.imageLink || '',
+      thumbnail: item.thumbnail || '',
+      shortDescription: item.shortDescription || '',
+      description: item.description || '',
+      category: item.category || 'FEATURED GAME',
+      version: item.version || '1.0',
+      publishDate: item.publishDate || '',
+      updatedDate: item.updatedDate || '',
+      tags: Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || ''),
       status: item.status || 'published',
       position: item.position || 0
     });
@@ -604,12 +702,18 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   };
 
   const handleDeleteFeaturedGame = async (id: string) => {
+    if (!verifyAuthBeforeWrite()) return;
     if (!window.confirm("Permanently delete this Featured Game item from database?")) return;
     try {
       await remove(dbRef(db, `featured_games/${id}`));
-      alert("Featured Game item deleted successfully.");
+      showToast("Featured Game item deleted successfully.", "success");
     } catch (err: any) {
-      alert("Error deleting item: " + err.message);
+      const msg = err?.message || '';
+      if (msg.includes('PERMISSION_DENIED') || msg.includes('Permission denied')) {
+        showToast("Permission denied: You must be signed in as an authorized admin to delete Featured Games.", "error");
+      } else {
+        showToast("Error deleting item: " + msg, "error");
+      }
     }
   };
 
@@ -2005,6 +2109,26 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
 
   return (
     <div className="fixed inset-0 z-50 bg-[#07070c] flex flex-col overflow-hidden text-gray-100 font-sans">
+      {/* ANIMATED TOAST NOTIFICATION */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 animate-bounce">
+          <div className={`px-5 py-3 rounded-xl border shadow-2xl backdrop-blur-xl flex items-center gap-3 font-display font-bold text-xs uppercase tracking-wider ${
+            toast.type === 'success' ? 'bg-black/90 border-cyber-cyan text-cyber-cyan shadow-[0_0_25px_rgba(0,240,255,0.3)]' :
+            toast.type === 'error' ? 'bg-black/90 border-cyber-magenta text-cyber-magenta shadow-[0_0_25px_rgba(255,0,85,0.3)]' :
+            'bg-black/90 border-amber-400 text-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.3)]'
+          }`}>
+            {toast.type === 'success' && <CheckCircle className="w-4 h-4 shrink-0" />}
+            {toast.type === 'error' && <AlertCircle className="w-4 h-4 shrink-0" />}
+            <span>{toast.message}</span>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 text-white/50 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* GLOWING ADMIN HEADER */}
       <header className="h-16 shrink-0 bg-black/90 backdrop-blur-md border-b border-cyber-cyan/15 px-4 md:px-6 flex items-center justify-between z-10">
@@ -2432,7 +2556,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                   </div>
 
                   {/* Field 7: Link to an Image */}
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-2">
                     <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
                       Link to an Image (Cover / Banner Image URL) <span className="text-cyber-magenta">*</span>
                     </label>
@@ -2454,6 +2578,99 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                         />
                       </div>
                     )}
+                  </div>
+
+                  {/* Field 8: Thumbnail Image URL */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
+                      Thumbnail Image URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={featuredGameForm.thumbnail || ''}
+                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, thumbnail: e.target.value })}
+                      placeholder="e.g. https://images.unsplash.com/photo-thumbnail"
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
+                    />
+                    {featuredGameForm.thumbnail && (
+                      <div className="mt-3 relative aspect-video w-full max-w-xs rounded-xl overflow-hidden border border-white/10">
+                        <img 
+                          src={featuredGameForm.thumbnail} 
+                          alt="Thumbnail Preview"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Field 9: Category & Version */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
+                      Category
+                    </label>
+                    <input
+                      type="text"
+                      value={featuredGameForm.category || 'FEATURED GAME'}
+                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, category: e.target.value })}
+                      placeholder="e.g. FEATURED GAME / ACTION / RPG"
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
+                      Version
+                    </label>
+                    <input
+                      type="text"
+                      value={featuredGameForm.version || '1.0'}
+                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, version: e.target.value })}
+                      placeholder="e.g. 1.0 / 2.1.4"
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
+                    />
+                  </div>
+
+                  {/* Field 10: Tags */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
+                      Tags (comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={typeof featuredGameForm.tags === 'string' ? featuredGameForm.tags : Array.isArray(featuredGameForm.tags) ? featuredGameForm.tags.join(', ') : ''}
+                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, tags: e.target.value })}
+                      placeholder="e.g. Cyberpunk, Action, Unreal Engine 5, Raytracing"
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
+                    />
+                  </div>
+
+                  {/* Field 11: Short Description */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
+                      Short Description (Summary)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={featuredGameForm.shortDescription || ''}
+                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, shortDescription: e.target.value })}
+                      placeholder="Concise 1-2 sentence overview for cards and sharing..."
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
+                    />
+                  </div>
+
+                  {/* Field 12: Full Description */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
+                      Full Description & Specs
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={featuredGameForm.description || ''}
+                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, description: e.target.value })}
+                      placeholder="Detailed game specifications, patch notes, prompt usage instructions, and features..."
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
+                    />
                   </div>
                 </div>
 
