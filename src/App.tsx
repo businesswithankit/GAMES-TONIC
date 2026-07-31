@@ -19,6 +19,8 @@ import { compileActiveSocialLinks, getSocialSvgIcon } from './lib/socialUtils';
 import ContentCard from './components/ContentCard';
 import { NativeAdCard } from './components/NativeAdCard';
 import { StickyAdBanner } from './components/StickyAdBanner';
+import SmartLoader from './components/SmartLoader';
+import smartLoaderManager from './lib/smartLoaderManager';
 
 const DEFAULT_FEATURED_GAMES: FeaturedGameItem[] = [];
 
@@ -550,6 +552,7 @@ export default function App() {
         // Seed first-time settings in DB for direct management
         set(settingsRef, DEFAULT_SITE_SETTINGS);
       }
+      smartLoaderManager.setSettingsDataLoaded(true, true, true, true);
     });
 
     // Listen for custom Content posts
@@ -566,9 +569,11 @@ export default function App() {
         setPosts([]);
       }
       setPostsLoading(false);
+      smartLoaderManager.setHomeContentLoaded(true);
     }, (err) => {
       console.warn("Realtime Database loaded with restrictions, loading simulation pool:", err);
       setPostsLoading(false);
+      smartLoaderManager.setHomeContentLoaded(true);
     });
 
     // Listen for custom Videos
@@ -1009,6 +1014,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen text-gray-100 bg-[#07070c] flex flex-col justify-between">
+      <SmartLoader />
       
       <div>
         {/* Dynamic Visual Background effect */}
