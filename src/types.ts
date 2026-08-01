@@ -1,6 +1,6 @@
 export interface ContentPost {
   id: string;
-  type: 'games' | 'blogs' | 'mods' | 'updates' | 'announcements' | 'events' | string;
+  type: 'games' | 'blogs' | 'mods' | 'updates' | 'announcements' | 'events' | 'videos' | string;
   title: string;
   slug: string;
   thumbnail: string; // URL only
@@ -12,11 +12,11 @@ export interface ContentPost {
   description: string;
   shortDescription: string;
   category: string;
-  tags: string[];
+  tags: string[] | string;
   author: string;
   publishDate: string;
   status: 'draft' | 'published';
-  featured: boolean;
+  featured?: boolean;
   seoTitle?: string;
   seoDescription?: string;
   extraLink?: string; // e.g. mod download link, game steam link, registration link
@@ -28,6 +28,17 @@ export interface ContentPost {
   version?: string;
   updatedDate?: string;
   promptLink?: string;
+  content?: string;
+  downloadLink?: string;
+  officialWebsite?: string;
+  source?: string;
+  credits?: string;
+  sourceCredits?: string;
+  videoEmbed?: string;
+  embedCode?: string;
+  channelUrl?: string;
+  gameLink?: string;
+  imageLink?: string;
 }
 
 export interface NavMenu {

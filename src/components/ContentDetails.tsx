@@ -1,8 +1,25 @@
-import { useEffect, useState } from 'react';
-import { Calendar, Tag, User, Eye, Download, ExternalLink, CalendarDays, MapPin, Share2, Copy, Check, MessageCircle, Send, Globe, Mail, Code, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Calendar,
+  Tag,
+  User,
+  Eye,
+  Download,
+  ExternalLink,
+  CalendarDays,
+  Share2,
+  Globe,
+  Mail,
+  Code,
+  Info,
+  Sparkles,
+  Link as LinkIcon,
+  Video,
+  Award,
+  Check,
+  Copy
+} from 'lucide-react';
 import { ContentPost, Advertisement, AdSenseUnit } from '../types';
-import { db } from '../lib/firebase';
-import { ref, runTransaction } from 'firebase/database';
 import AdPlacement from './AdPlacement';
 import AdSensePlacement from './AdSensePlacement';
 
@@ -16,7 +33,21 @@ interface ContentDetailsProps {
   adsenseUnits?: AdSenseUnit[];
 }
 
-export default function ContentDetails({ post, onClose, onTagClick, onCategoryClick, onActionClick, ads = [], adsenseUnits = [] }: ContentDetailsProps) {
+interface MetadataItem {
+  label: string;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+}
+
+export default function ContentDetails({
+  post,
+  onClose,
+  onTagClick,
+  onCategoryClick,
+  onActionClick,
+  ads = [],
+  adsenseUnits = []
+}: ContentDetailsProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -33,7 +64,7 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
         });
         return;
       } catch (err) {
-        // Fallback to manual list if user cancels or error occurs
+        // Fallback to modal if user cancels or error occurs
       }
     }
     setShowShareModal(true);
@@ -45,530 +76,484 @@ export default function ContentDetails({ post, onClose, onTagClick, onCategoryCl
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (post.category === 'FEATURED GAME' || post.featured) {
-    const targetLink = post.promptLink || post.buttonLink || post.extraLink;
-    const devName = post.developerName || (post.author && post.author !== 'GAMES TONIC' ? post.author : '');
-    const hasTags = Array.isArray(post.tags) && post.tags.length > 0;
+  // Safe tag extraction
+  const tagList = Array.isArray(post.tags)
+    ? post.tags
+    : typeof post.tags === 'string' && post.tags.trim()
+    ? (post.tags as string).split(',').map((t) => t.trim()).filter(Boolean)
+    : [];
 
-    return (
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-cyber-dark/95 backdrop-blur-xl animate-fade-in pb-16 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-4xl glass-panel-neon border border-cyber-cyan/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,240,255,0.15)] bg-[#0c0c16] font-sans my-auto">
-          
-          {/* Floating Close Button */}
+  // Determine cover / banner image
+  const heroImage = post.cover || post.banner || post.thumbnail || post.imageLink;
+
+  // Resolve distinct links for buttons
+  const promptUrl = post.promptLink?.trim();
+  
+  const websiteUrl = (
+    post.websiteLink ||
+    post.officialWebsite ||
+    post.gameLink ||
+    (post.type === 'games' && post.buttonLink ? post.buttonLink : undefined)
+  )?.trim();
+
+  const downloadUrl = (
+    post.downloadLink ||
+    post.extraLink ||
+    (post.type === 'mods' && post.buttonLink ? post.buttonLink : undefined)
+  )?.trim();
+
+  const videoUrl = (
+    (post.type === 'videos' && post.buttonLink ? post.buttonLink : undefined) ||
+    post.channelUrl
+  )?.trim();
+
+  const sourceUrl = (
+    post.source ||
+    (post.developerWebsite && post.developerWebsite !== websiteUrl ? post.developerWebsite : undefined)
+  )?.trim();
+
+  // Custom link button if buttonLink exists and is different from above
+  const isCustomButtonNeeded =
+    post.buttonLink &&
+    post.linkEnabled !== false &&
+    post.buttonLink.trim() !== promptUrl &&
+    post.buttonLink.trim() !== websiteUrl &&
+    post.buttonLink.trim() !== downloadUrl &&
+    post.buttonLink.trim() !== videoUrl &&
+    post.buttonLink.trim() !== sourceUrl;
+
+  const customButtonUrl = isCustomButtonNeeded ? post.buttonLink?.trim() : undefined;
+
+  // Dynamically prepare all metadata fields from Admin Panel (never show blank labels, hide if empty)
+  const metadataItems: MetadataItem[] = [];
+
+  const devName = post.developerName || (post.author && post.author !== 'GAMES TONIC' ? post.author : '');
+  if (devName && devName.trim() !== '') {
+    metadataItems.push({
+      label: 'Developer / Author',
+      value: <span className="text-white font-semibold uppercase">{devName}</span>,
+      icon: <User className="w-4 h-4 text-cyber-cyan" />
+    });
+  }
+
+  if (post.developerEmail && post.developerEmail.trim() !== '') {
+    metadataItems.push({
+      label: 'Developer Email',
+      value: (
+        <a
+          href={`mailto:${post.developerEmail}`}
+          className="text-cyber-cyan hover:underline truncate block"
+        >
+          {post.developerEmail}
+        </a>
+      ),
+      icon: <Mail className="w-4 h-4 text-cyber-purple" />
+    });
+  }
+
+  if (post.developerWebsite && post.developerWebsite.trim() !== '') {
+    metadataItems.push({
+      label: 'Developer Website',
+      value: (
+        <a
+          href={post.developerWebsite}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyber-cyan hover:underline truncate block"
+        >
+          {post.developerWebsite}
+        </a>
+      ),
+      icon: <Globe className="w-4 h-4 text-cyber-cyan" />
+    });
+  }
+
+  const sourceOrCredits = post.source || post.credits || post.sourceCredits;
+  if (sourceOrCredits && sourceOrCredits.trim() !== '') {
+    metadataItems.push({
+      label: 'Source / Credits',
+      value: <span className="text-gray-300 break-words">{sourceOrCredits}</span>,
+      icon: <Info className="w-4 h-4 text-amber-400" />
+    });
+  }
+
+  if (websiteUrl && websiteUrl !== post.developerWebsite) {
+    metadataItems.push({
+      label: 'Official Website',
+      value: (
+        <a
+          href={websiteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyber-cyan hover:underline truncate block"
+        >
+          {websiteUrl}
+        </a>
+      ),
+      icon: <Globe className="w-4 h-4 text-cyber-cyan" />
+    });
+  }
+
+  if (promptUrl) {
+    metadataItems.push({
+      label: 'Prompt Link',
+      value: (
+        <a
+          href={promptUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyber-cyan hover:underline truncate block font-mono text-xs"
+        >
+          {promptUrl}
+        </a>
+      ),
+      icon: <Sparkles className="w-4 h-4 text-cyber-magenta" />
+    });
+  }
+
+  if (downloadUrl) {
+    metadataItems.push({
+      label: 'Download Link',
+      value: (
+        <a
+          href={downloadUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyber-cyan hover:underline truncate block font-mono text-xs"
+        >
+          {downloadUrl}
+        </a>
+      ),
+      icon: <Download className="w-4 h-4 text-green-400" />
+    });
+  }
+
+  if (post.version && post.version.trim() !== '') {
+    metadataItems.push({
+      label: 'Version',
+      value: <span className="font-mono text-amber-400 font-bold uppercase">v{post.version}</span>,
+      icon: <Award className="w-4 h-4 text-amber-400" />
+    });
+  }
+
+  if (post.publishDate && post.publishDate.trim() !== '') {
+    metadataItems.push({
+      label: 'Publish Date',
+      value: <span className="text-gray-300 font-mono">{post.publishDate}</span>,
+      icon: <Calendar className="w-4 h-4 text-gray-400" />
+    });
+  }
+
+  if (post.updatedDate && post.updatedDate.trim() !== '') {
+    metadataItems.push({
+      label: 'Last Updated',
+      value: <span className="text-gray-300 font-mono">{post.updatedDate}</span>,
+      icon: <CalendarDays className="w-4 h-4 text-gray-400" />
+    });
+  }
+
+  if (post.viewsCount && post.viewsCount > 0) {
+    metadataItems.push({
+      label: 'Total Views',
+      value: <span className="text-gray-300 font-mono">{post.viewsCount.toLocaleString()}</span>,
+      icon: <Eye className="w-4 h-4 text-gray-400" />
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in flex items-center justify-center p-3 sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-4xl max-h-[90vh] flex flex-col glass-panel-neon border border-cyber-cyan/30 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,240,255,0.2)] bg-[#0c0c16] font-sans my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky Header with Close Button */}
+        <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-[#0c0c16]/95 backdrop-blur-md border-b border-white/10">
+          <div className="flex items-center gap-2.5 overflow-hidden pr-4">
+            {post.category && (
+              <span
+                onClick={() => {
+                  onClose();
+                  onCategoryClick?.(post.category);
+                }}
+                className="text-[10px] uppercase font-display font-bold tracking-widest text-cyber-cyan bg-cyber-cyan/15 border border-cyber-cyan/30 px-3 py-1 rounded-full shrink-0 cursor-pointer hover:bg-cyber-cyan/25 transition-colors"
+              >
+                {post.category}
+              </span>
+            )}
+            {post.featured && (
+              <span className="text-[10px] uppercase font-display font-bold tracking-widest text-cyber-magenta bg-cyber-magenta/15 border border-cyber-magenta/30 px-3 py-1 rounded-full shrink-0">
+                ★ FEATURED
+              </span>
+            )}
+            {post.version && (
+              <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-amber-400 bg-amber-400/15 border border-amber-400/30 px-2.5 py-1 rounded-full shrink-0">
+                v{post.version}
+              </span>
+            )}
+            <h2 className="text-xs sm:text-sm font-display font-bold text-gray-300 truncate uppercase">
+              {post.title}
+            </h2>
+          </div>
           <button
             onClick={onClose}
             id="detail-close-btn"
-            className="absolute top-4 right-4 p-2.5 bg-black/70 border border-white/10 text-white rounded-full hover:border-cyber-cyan hover:text-cyber-cyan transition-all cursor-pointer z-10"
+            className="p-2.5 bg-black/70 border border-white/10 text-white rounded-full hover:border-cyber-cyan hover:text-cyber-cyan hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all cursor-pointer shrink-0 ml-2"
+            title="Close"
           >
             ✕
           </button>
+        </div>
 
-          {/* Game Image */}
-          {(post.banner || post.thumbnail) && (
-            <div className="relative w-full aspect-video max-h-[420px] overflow-hidden bg-black">
+        {/* Scrollable Popup Content Body */}
+        <div className="overflow-y-auto max-h-[calc(90vh-72px)] p-6 md:p-8 space-y-6">
+          {/* Cover / Banner Image */}
+          {heroImage && (
+            <div className="relative w-full aspect-video max-h-[420px] rounded-2xl overflow-hidden bg-black/60 border border-white/10 shadow-lg">
               <img
-                src={post.banner || post.thumbnail}
+                src={heroImage}
                 alt={post.title}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c16] via-transparent to-black/30" />
-              
-              <div className="absolute bottom-4 left-6 right-6 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  {post.category && (
-                    <span className="text-[10px] uppercase font-display font-bold tracking-widest text-cyber-cyan bg-cyber-cyan/15 border border-cyber-cyan/30 px-3 py-1 rounded-full">
-                      {post.category}
-                    </span>
-                  )}
-                  {post.version && (
-                    <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-amber-400 bg-amber-400/15 border border-amber-400/30 px-2.5 py-1 rounded-full">
-                      v{post.version}
-                    </span>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleShareClick}
-                  className="px-3 py-1.5 bg-black/80 backdrop-blur-md border border-white/20 hover:border-cyber-cyan text-white text-xs font-mono font-bold rounded-lg uppercase flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-cyber-cyan" />
-                  <span>SHARE</span>
-                </button>
-              </div>
             </div>
           )}
 
-          {/* Details Content */}
-          <div className="p-6 md:p-8 space-y-6">
-            {/* Game Name & Share */}
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <h1 className="text-2xl md:text-4xl font-display font-black text-white tracking-wider uppercase text-glow flex-1">
-                {post.title}
-              </h1>
-              {!(post.banner || post.thumbnail) && (
-                <button
-                  onClick={handleShareClick}
-                  className="px-3 py-1.5 bg-white/5 border border-white/10 hover:border-cyber-cyan text-white text-xs font-mono font-bold rounded-lg uppercase flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-cyber-cyan" />
-                  <span>SHARE</span>
-                </button>
+          {/* Title and Short Description */}
+          <div className="space-y-3">
+            <h1 className="text-2xl sm:text-4xl font-display font-black text-white tracking-wide uppercase">
+              {post.title}
+            </h1>
+            {post.shortDescription && (
+              <p className="text-base sm:text-lg text-gray-200 font-sans leading-relaxed">
+                {post.shortDescription}
+              </p>
+            )}
+          </div>
+
+          {/* Video Embed if present */}
+          {(post.embedCode || post.videoEmbed) && (
+            <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/80 shadow-lg my-6">
+              {post.embedCode ? (
+                <div
+                  className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_iframe]:aspect-video"
+                  dangerouslySetInnerHTML={{ __html: post.embedCode }}
+                />
+              ) : (
+                <iframe
+                  src={post.videoEmbed}
+                  className="w-full h-full border-0"
+                  allowFullScreen
+                  title={post.title}
+                />
               )}
             </div>
+          )}
 
-            {/* Short Description */}
-            {post.shortDescription && (
-              <div className="text-base md:text-lg text-cyber-cyan/90 font-sans font-medium leading-relaxed bg-cyber-cyan/5 border-l-4 border-cyber-cyan p-4 rounded-r-xl">
-                {post.shortDescription}
+          {/* Full Description / Content */}
+          {(post.description || post.content) &&
+            (post.description || post.content) !== post.shortDescription && (
+              <div className="p-5 sm:p-6 bg-black/40 border border-white/10 rounded-2xl text-gray-300 font-sans text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                {post.description || post.content}
               </div>
             )}
 
-            {/* Full Description */}
-            {post.description && post.description !== post.shortDescription && (
-              <div className="prose prose-invert max-w-none text-gray-300 font-sans text-sm md:text-base leading-relaxed bg-white/[0.02] p-5 rounded-xl border border-white/5 whitespace-pre-wrap">
-                {post.description}
-              </div>
-            )}
-
-            {/* Metadata Grid (Developer, Website, Dates, Thumbnail URL preview) */}
-            {(devName || post.developerEmail || post.developerWebsite || post.websiteLink || post.publishDate || post.updatedDate || post.thumbnail) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-black/40 p-5 rounded-2xl border border-white/5 text-xs text-gray-300 font-sans">
-                {devName && (
-                  <div className="flex items-center gap-2.5">
-                    <User className="w-4 h-4 text-cyber-cyan shrink-0" />
-                    <div className="truncate">
-                      <span className="text-gray-500 block text-[10px] uppercase">Developer Name</span>
-                      <span className="font-semibold text-white">{devName}</span>
-                    </div>
-                  </div>
-                )}
-
-                {post.developerEmail && (
-                  <div className="flex items-center gap-2.5">
-                    <Mail className="w-4 h-4 text-cyber-magenta shrink-0" />
-                    <div className="truncate">
-                      <span className="text-gray-500 block text-[10px] uppercase">Developer Email</span>
-                      <a href={`mailto:${post.developerEmail}`} className="text-cyber-cyan hover:underline truncate">
-                        {post.developerEmail}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {post.developerWebsite && (
-                  <div className="flex items-center gap-2.5">
-                    <Globe className="w-4 h-4 text-amber-400 shrink-0" />
-                    <div className="truncate">
-                      <span className="text-gray-500 block text-[10px] uppercase">Developer Website</span>
-                      <a
-                        href={post.developerWebsite}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-cyber-cyan hover:underline truncate block"
-                      >
-                        {post.developerWebsite}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {post.websiteLink && (
-                  <div className="flex items-center gap-2.5">
-                    <ExternalLink className="w-4 h-4 text-cyber-cyan shrink-0" />
-                    <div className="truncate">
-                      <span className="text-gray-500 block text-[10px] uppercase">External Website Link</span>
-                      <a
-                        href={post.websiteLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-cyber-cyan hover:underline truncate block"
-                      >
-                        {post.websiteLink}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {post.publishDate && (
-                  <div className="flex items-center gap-2.5">
-                    <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-                    <div>
-                      <span className="text-gray-500 block text-[10px] uppercase">Created Date</span>
-                      <span className="text-gray-300">{post.publishDate}</span>
-                    </div>
-                  </div>
-                )}
-
-                {post.updatedDate && (
-                  <div className="flex items-center gap-2.5">
-                    <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
-                    <div>
-                      <span className="text-gray-500 block text-[10px] uppercase">Updated Date</span>
-                      <span className="text-gray-300">{post.updatedDate}</span>
-                    </div>
-                  </div>
-                )}
-
-                {post.thumbnail && post.thumbnail !== post.banner && (
-                  <div className="flex items-center gap-2.5 sm:col-span-2 lg:col-span-3">
-                    <Info className="w-4 h-4 text-gray-400 shrink-0" />
-                    <div className="truncate">
-                      <span className="text-gray-500 block text-[10px] uppercase">Thumbnail URL</span>
-                      <a
-                        href={post.thumbnail}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-white truncate block text-[11px]"
-                      >
-                        {post.thumbnail}
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Tags */}
-            {hasTags && (
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Tag className="w-4 h-4 text-cyber-cyan mr-1" />
-                {post.tags.map((t, idx) => (
-                  <span
-                    key={idx}
-                    onClick={() => {
-                      onClose();
-                      onTagClick?.(t);
-                    }}
-                    className="px-3 py-1 bg-white/5 border border-white/10 hover:border-cyber-cyan rounded-lg text-xs font-mono text-gray-300 uppercase transition-colors cursor-pointer"
-                  >
-                    #{t}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Prompt Link Button */}
-            {targetLink && (
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (onActionClick) {
-                      onActionClick(targetLink, true);
-                    } else {
-                      window.open(targetLink, '_blank');
-                    }
-                  }}
-                  className="w-full py-4 bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-125 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] text-black font-display font-black text-sm uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <ExternalLink className="w-5 h-5 text-black" />
-                  <span>GET PROMPT</span>
-                </button>
-              </div>
-            )}
+          {/* AdSense / Ad Placement inside Popup */}
+          <div className="my-4">
+            <AdSensePlacement slot="article_top" units={adsenseUnits} />
+            <AdPlacement position="blog_top" ads={ads} />
           </div>
 
-          {/* Share Modal */}
-          {showShareModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-              <div className="w-full max-w-md bg-[#0c0c16] border border-cyber-cyan/40 rounded-2xl p-6 shadow-2xl relative">
-                <button
-                  onClick={() => setShowShareModal(false)}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-white"
+          {/* Dynamic Admin Panel Metadata Grid (Never show blank labels, automatically hide empty fields) */}
+          {metadataItems.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+              {metadataItems.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-start gap-3"
                 >
-                  ✕
-                </button>
-                <h3 className="text-lg font-display font-bold text-white uppercase tracking-wider mb-4">
-                  Share Featured Game
-                </h3>
-                <div className="flex items-center gap-2 bg-black/60 border border-white/10 rounded-xl p-2.5">
-                  <input
-                    type="text"
-                    readOnly
-                    value={shareUrl}
-                    className="w-full bg-transparent text-xs text-gray-300 focus:outline-none"
-                  />
-                  <button
-                    onClick={copyToClipboard}
-                    className="px-3 py-1.5 bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan rounded-lg text-xs font-mono font-bold uppercase hover:bg-cyber-cyan hover:text-black transition-colors shrink-0"
-                  >
-                    {copied ? 'Copied!' : 'Copy'}
-                  </button>
+                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                    {item.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] text-gray-400 font-mono uppercase block mb-0.5">
+                      {item.label}
+                    </span>
+                    <div className="text-xs text-gray-200 truncate">{item.value}</div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           )}
-        </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-cyber-dark/95 backdrop-blur-xl animate-fade-in pb-16">
-      {/* Visual Header Banner - Fully Responsive */}
-      <div className="relative w-full h-[50vh] md:h-[60vh] overflow-hidden">
-        <img
-          src={post.banner || post.thumbnail || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80'}
-          alt={post.title}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover brightness-50"
-        />
-        {/* Ambient Dark Neon Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark via-cyber-dark/40 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 max-w-5xl mx-auto px-6 py-8">
-          {/* Tags / Categories */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span
-              onClick={() => onCategoryClick?.(post.category)}
-              className="text-xs uppercase font-display font-semibold tracking-wider text-cyber-cyan bg-cyber-cyan/10 border border-cyber-cyan/30 px-3 py-1 rounded-full cursor-pointer hover:bg-cyber-cyan/20 transition-colors"
-            >
-              {post.category}
-            </span>
-            {post.featured && (
-              <span className="text-xs uppercase font-display font-semibold tracking-wider text-cyber-magenta bg-cyber-magenta/15 border border-cyber-magenta/40 px-3 py-1 rounded-full">
-                ★ FEATURED
-              </span>
+          {/* Tags */}
+          {tagList.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <Tag className="w-4 h-4 text-cyber-cyan mr-1" />
+              {tagList.map((t, idx) => (
+                <span
+                  key={idx}
+                  onClick={() => {
+                    onClose();
+                    onTagClick?.(t);
+                  }}
+                  className="px-3 py-1 bg-white/5 border border-white/10 hover:border-cyber-cyan rounded-lg text-xs font-mono text-gray-300 uppercase transition-colors cursor-pointer"
+                >
+                  #{t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Action Buttons Bar (Show buttons only when links exist; automatically hide if no link is available; always include Share button) */}
+          <div className="pt-6 border-t border-white/10 flex flex-wrap items-center gap-3">
+            {promptUrl && (
+              <button
+                onClick={() => {
+                  if (onActionClick) {
+                    onActionClick(promptUrl, true);
+                  } else {
+                    window.open(promptUrl, '_blank');
+                  }
+                }}
+                className="px-5 py-3 bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-125 text-black font-display font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.3)]"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>GET PROMPT</span>
+              </button>
             )}
-          </div>
 
-          <h1 className="text-3xl md:text-5xl font-display font-bold text-white tracking-widest text-glow mb-4 uppercase">
-            {post.title}
-          </h1>
+            {websiteUrl && (
+              <button
+                onClick={() => {
+                  if (onActionClick) {
+                    onActionClick(websiteUrl, true);
+                  } else {
+                    window.open(websiteUrl, '_blank');
+                  }
+                }}
+                className="px-5 py-3 bg-white/10 hover:bg-cyber-cyan/20 border border-white/20 hover:border-cyber-cyan text-white hover:text-cyber-cyan font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Globe className="w-4 h-4" />
+                <span>{post.buttonText && post.type === 'games' ? post.buttonText : 'VISIT WEBSITE'}</span>
+              </button>
+            )}
 
-          {/* Metadata Bar */}
-          <div className="flex flex-wrap items-center gap-4 text-xs md:text-sm text-gray-400 font-sans border-t border-white/10 pt-4">
-            <div className="flex items-center gap-1.5">
-              <User className="w-4 h-4 text-cyber-purple" />
-              <span>BY <strong className="text-white">{post.author}</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-cyber-purple" />
-              <span>{post.publishDate}</span>
-            </div>
+            {downloadUrl && (
+              <button
+                onClick={() => {
+                  if (onActionClick) {
+                    onActionClick(downloadUrl, true);
+                  } else {
+                    window.open(downloadUrl, '_blank');
+                  }
+                }}
+                className="px-5 py-3 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>{post.buttonText && post.type === 'mods' ? post.buttonText : 'DOWNLOAD'}</span>
+              </button>
+            )}
+
+            {videoUrl && (
+              <button
+                onClick={() => {
+                  if (onActionClick) {
+                    onActionClick(videoUrl, true);
+                  } else {
+                    window.open(videoUrl, '_blank');
+                  }
+                }}
+                className="px-5 py-3 bg-cyber-magenta/20 hover:bg-cyber-magenta/30 border border-cyber-magenta/40 text-cyber-magenta font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                <span>{post.buttonText || 'WATCH VIDEO'}</span>
+              </button>
+            )}
+
+            {sourceUrl && (
+              <button
+                onClick={() => {
+                  if (onActionClick) {
+                    onActionClick(sourceUrl, true);
+                  } else {
+                    window.open(sourceUrl, '_blank');
+                  }
+                }}
+                className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>OFFICIAL SOURCE</span>
+              </button>
+            )}
+
+            {customButtonUrl && (
+              <button
+                onClick={() => {
+                  if (onActionClick) {
+                    onActionClick(customButtonUrl, true);
+                  } else {
+                    window.open(customButtonUrl, '_blank');
+                  }
+                }}
+                className="px-5 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>{post.buttonText || 'OPEN LINK'}</span>
+              </button>
+            )}
+
+            {/* SHARE BUTTON: Every popup must include a Share button */}
             <button
               onClick={handleShareClick}
-              className="ml-auto flex items-center gap-1.5 text-cyber-cyan hover:brightness-125 transition-all text-xs font-display cursor-pointer"
+              className="ml-auto px-5 py-3 bg-black/60 hover:bg-cyber-cyan/15 border border-white/15 hover:border-cyber-cyan text-gray-300 hover:text-cyber-cyan font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2"
             >
               <Share2 className="w-4 h-4" />
-              <span>SHARE RECORD</span>
+              <span>SHARE</span>
             </button>
           </div>
         </div>
 
-        {/* Close Button Floating */}
-        <button
-          onClick={onClose}
-          id="detail-close-btn"
-          className="absolute top-6 right-6 p-3 bg-black/60 border border-white/10 text-white rounded-full hover:border-cyber-cyan hover:text-cyber-cyan hover:shadow-[0_0_8px_#00f0ff] transition-all cursor-pointer z-10"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* TOP DETAIL ADS */}
-      <div className="max-w-5xl mx-auto px-6 mt-4">
-        <AdSensePlacement slot="article_top" units={adsenseUnits} />
-        {post.type === 'blogs' && <><AdSensePlacement slot="blog_top" units={adsenseUnits} /><AdPlacement position="blog_top" ads={ads} /></>}
-        {post.type === 'mods' && <><AdSensePlacement slot="mod_top" units={adsenseUnits} /><AdPlacement position="mod_top" ads={ads} /></>}
-      </div>
-
-      {/* Primary Article Layout */}
-      <div className="max-w-5xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Core Article Content (Left Column) */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="p-6 md:p-8 glass-panel-neon rounded-2xl border border-white/5 space-y-6">
-            {/* Short Description Quote block */}
-            <p className="text-lg md:text-xl font-medium text-cyber-cyan/90 border-l-4 border-cyber-cyan pl-4 italic leading-relaxed">
-              {post.shortDescription}
-            </p>
-
-            {/* MIDDLE ARTICLE ADS */}
-            <AdSensePlacement slot="article_middle" units={adsenseUnits} />
-            {post.type === 'blogs' && <AdPlacement position="blog_middle" ads={ads} />}
-
-            {/* Complete HTML/Markdown Description */}
-            <div className="prose prose-invert max-w-none text-gray-300 space-y-4 font-sans text-base md:text-lg leading-relaxed whitespace-pre-wrap">
-              {post.description}
-            </div>
-          </div>
-
-          {/* BOTTOM COLUMN ADS */}
-          <AdSensePlacement slot="article_bottom" units={adsenseUnits} />
-          {post.type === 'blogs' && <><AdSensePlacement slot="blog_bottom" units={adsenseUnits} /><AdPlacement position="blog_bottom" ads={ads} /></>}
-          {post.type === 'mods' && <><AdSensePlacement slot="mod_bottom" units={adsenseUnits} /><AdPlacement position="mod_bottom" ads={ads} /></>}
-        </div>
-
-        {/* Custom Actions & Specs Panels (Right Sidebar) */}
-        <div className="space-y-6">
-          {/* Action Call for custom URLs */}
-          {post.extraLink && (
-            <div className="p-6 glass-panel-neon rounded-2xl border border-cyber-cyan/30 text-center space-y-4 shadow-[0_4px_24px_rgba(0,240,255,0.05)]">
-              <h3 className="font-display font-bold text-white text-base tracking-wider uppercase">
-                {post.type === 'mods' ? 'DOWNLOAD ARTIFACT' : post.type === 'events' ? 'PORTAL REGISTRATION' : 'LAUNCH ACCESS'}
-              </h3>
-              <p className="text-xs text-gray-400">
-                {post.type === 'mods' 
-                  ? 'Verify directory pathways inside game roots before running mod installation.' 
-                  : 'Register safely using standard secure game protocol redirections.'
-                }
-              </p>
+        {/* Share Modal Overlay */}
+        {showShareModal && (
+          <div
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+            onClick={() => setShowShareModal(false)}
+          >
+            <div
+              className="w-full max-w-md bg-[#0c0c16] border border-cyber-cyan/40 rounded-2xl p-6 shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onActionClick) {
-                    onActionClick(post.extraLink!, true);
-                  } else {
-                    window.open(post.extraLink, '_blank');
-                  }
-                }}
-                className="inline-flex w-full items-center justify-center gap-2 py-3 bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-125 hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] text-dark font-display font-bold text-sm uppercase rounded-xl transition-all cursor-pointer text-black"
-              >
-                {post.type === 'mods' ? <Download className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
-                <span>
-                  {post.type === 'mods' ? 'Download Now' : post.type === 'events' ? 'Register Now' : 'Launch Link'}
-                </span>
-              </button>
-            </div>
-          )}
-
-          {/* Tags Widget */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="p-6 glass-panel rounded-2xl border border-white/5 space-y-4">
-              <h4 className="font-display font-bold text-white text-sm tracking-widest uppercase pb-2 border-b border-white/5">
-                INDEXED TAGS
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      onTagClick?.(tag);
-                      onClose();
-                    }}
-                    className="text-xs bg-white/5 border border-white/10 hover:border-cyber-cyan hover:text-cyber-cyan px-2.5 py-1 rounded transition-colors text-gray-400 cursor-pointer"
-                  >
-                    #{tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quick Specifications Widget */}
-          <div className="p-6 glass-panel rounded-2xl border border-white/5 space-y-4">
-            <h4 className="font-display font-bold text-white text-sm tracking-widest uppercase pb-2 border-b border-white/5">
-              SPEC SHEET
-            </h4>
-            <div className="space-y-3 text-xs font-mono text-gray-400">
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <span>POST ID</span>
-                <span className="text-white text-right font-display text-[10px] tracking-tighter truncate max-w-[150px]">
-                  {post.id}
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <span>CONTENT TYPE</span>
-                <span className="text-cyber-magenta font-display uppercase font-bold text-[10px]">
-                  {post.type}
-                </span>
-              </div>
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <span>SEO TITLE</span>
-                <span className="text-white text-right truncate max-w-[150px]">
-                  {post.seoTitle || post.title}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* SIDEBAR AD ZONE */}
-          <AdPlacement position="sidebar" ads={ads} />
-        </div>
-      </div>
-
-      {/* Share Modal Dialog Overlay */}
-      {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" onClick={() => setShowShareModal(false)}>
-          <div className="w-full max-w-sm glass-panel p-6 border border-white/10 rounded-2xl bg-[#0e0e17] space-y-4 text-left" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center border-b border-white/5 pb-2">
-              <span className="text-xs font-display font-black tracking-widest text-white uppercase flex items-center gap-1.5">
-                <Share2 className="w-4 h-4 text-cyber-cyan" />
-                <span>Share Content</span>
-              </span>
-              <button 
                 onClick={() => setShowShareModal(false)}
-                className="text-gray-400 hover:text-white transition-colors cursor-pointer text-xs font-mono"
+                className="absolute top-4 right-4 text-gray-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
-            </div>
-
-            <p className="text-[11px] text-gray-400 leading-relaxed font-sans">
-              Transmit this registry record across secure neural nets and external digital relays.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3.5 pt-1 text-[10px] font-display font-bold">
-              {/* Copy Link */}
-              <button
-                onClick={copyToClipboard}
-                className="p-3 bg-white/5 hover:bg-cyber-cyan/15 hover:text-cyber-cyan border border-white/5 hover:border-cyber-cyan/30 rounded-xl transition-all flex flex-col items-center gap-2 text-center cursor-pointer"
-              >
-                {copied ? <Check className="w-5 h-5 text-green-400 animate-bounce" /> : <Copy className="w-5 h-5" />}
-                <span>{copied ? 'LINK COPIED' : 'COPY DIRECT LINK'}</span>
-              </button>
-
-              {/* Telegram */}
-              <a
-                href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-white/5 hover:bg-sky-500/15 hover:text-sky-400 border border-white/5 hover:border-sky-500/30 rounded-xl transition-all flex flex-col items-center gap-2 text-center"
-              >
-                <Send className="w-5 h-5 text-sky-400" />
-                <span>TELEGRAM RELAY</span>
-              </a>
-
-              {/* X / Twitter */}
-              <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl transition-all flex flex-col items-center gap-2 text-center text-white"
-              >
-                <Share2 className="w-5 h-5" />
-                <span>X / TWITTER FEED</span>
-              </a>
-
-              {/* WhatsApp */}
-              <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareTitle + ' - ' + shareUrl)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-white/5 hover:bg-emerald-500/15 hover:text-emerald-400 border border-white/5 hover:border-emerald-500/30 rounded-xl transition-all flex flex-col items-center gap-2 text-center"
-              >
-                <MessageCircle className="w-5 h-5 text-emerald-400" />
-                <span>WHATSAPP INTENT</span>
-              </a>
-
-              {/* Facebook */}
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-3 bg-white/5 hover:bg-blue-600/15 hover:text-blue-400 border border-white/5 hover:border-blue-600/30 rounded-xl transition-all flex flex-col items-center gap-2 text-center col-span-2"
-              >
-                <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
-                </svg>
-                <span>FACEBOOK DIALOG</span>
-              </a>
+              <h3 className="text-lg font-display font-bold text-white uppercase tracking-wider mb-4">
+                Share Content
+              </h3>
+              <div className="flex items-center gap-2 bg-black/60 border border-white/10 rounded-xl p-2.5">
+                <input
+                  type="text"
+                  readOnly
+                  value={shareUrl}
+                  className="w-full bg-transparent text-xs text-gray-300 focus:outline-none"
+                />
+                <button
+                  onClick={copyToClipboard}
+                  className="px-3 py-1.5 bg-cyber-cyan/20 border border-cyber-cyan/40 text-cyber-cyan rounded-lg text-xs font-mono font-bold uppercase hover:bg-cyber-cyan hover:text-black transition-colors shrink-0 cursor-pointer"
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
