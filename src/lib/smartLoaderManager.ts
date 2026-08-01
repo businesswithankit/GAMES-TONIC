@@ -143,30 +143,30 @@ class SmartLoaderManager {
 
   public getCurrentStatusText(): string {
     if (!this.tasks.firebaseInitialized || !this.tasks.firestoreConnected) {
-      return "INITIALIZING FIREBASE & FIRESTORE...";
+      return "🎮 Preparing Your Gaming Experience...";
     }
     if (!this.tasks.authInitialized) {
-      return "VERIFYING FIREBASE AUTHENTICATION...";
+      return "🚀 Loading Epic Adventures...";
     }
     if (!this.tasks.rtdbConnected) {
-      return "CONNECTING REALTIME DATABASE...";
+      return "🔥 Powering Up the Game Zone...";
     }
     if (!this.tasks.settingsLoaded) {
-      return "LOADING SITE SETTINGS...";
+      return "🎲 Unlocking Awesome Content...";
     }
     if (!this.tasks.navigationLoaded || !this.tasks.categoriesLoaded) {
-      return "LOADING NAVIGATION & CATEGORIES...";
+      return "🕹️ Loading the Ultimate Gaming Hub...";
     }
     if (!this.tasks.socialLinksLoaded) {
-      return "LOADING SOCIAL LINKS...";
+      return "🌟 Welcome to GAMES TONIC";
     }
     if (!this.tasks.homeContentLoaded) {
-      return "LOADING HOMEPAGE CONTENT...";
+      return "🎮 Discovering Amazing Games...";
     }
     if (!this.tasks.aboveFoldImagesReady) {
-      return "PREPARING ABOVE-THE-FOLD ASSETS...";
+      return "🛡️ Loading New Adventures...";
     }
-    return "LAUNCHING GAMING EXPERIENCE...";
+    return "🏁 Get Ready to Play...";
   }
 
   public subscribe(listener: Listener): () => void {

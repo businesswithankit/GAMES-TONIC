@@ -2,15 +2,53 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Gamepad2, Sparkles, RefreshCw, AlertCircle, Wifi } from 'lucide-react';
 import smartLoaderManager, { StartupTasksState } from '../lib/smartLoaderManager';
 
+const GAMING_LOADING_MESSAGES = [
+  "🎮 Preparing Your Gaming Experience...",
+  "🚀 Loading Epic Adventures...",
+  "🎯 Ready for the Next Challenge...",
+  "🔥 Powering Up the Game Zone...",
+  "🎲 Unlocking Awesome Content...",
+  "🕹️ Loading the Ultimate Gaming Hub...",
+  "⚡ Almost Ready...",
+  "🌟 Welcome to GAMES TONIC",
+  "🎮 Discovering Amazing Games...",
+  "🔥 Building Your Gaming World...",
+  "🛡️ Loading New Adventures...",
+  "🏁 Get Ready to Play..."
+];
+
 export default function SmartLoader() {
   const [visible, setVisible] = useState<boolean>(() => !smartLoaderManager.hasCompletedInitialLoad());
   const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
   const [percentage, setPercentage] = useState<number>(0);
-  const [statusText, setStatusText] = useState<string>('INITIALIZING FIREBASE & FIRESTORE...');
+  const [statusText, setStatusText] = useState<string>('🎮 Preparing Your Gaming Experience...');
   const [isSlowNetwork, setIsSlowNetwork] = useState<boolean>(false);
   const [retrying, setRetrying] = useState<boolean>(false);
 
+  const [loadingMessage, setLoadingMessage] = useState<string>(() => {
+    const randomIndex = Math.floor(Math.random() * GAMING_LOADING_MESSAGES.length);
+    return GAMING_LOADING_MESSAGES[randomIndex];
+  });
+  const [messageFade, setMessageFade] = useState<boolean>(true);
+
   const startTimeRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!visible) return;
+    const interval = setInterval(() => {
+      setMessageFade(false);
+      setTimeout(() => {
+        setLoadingMessage((prev) => {
+          const others = GAMING_LOADING_MESSAGES.filter((msg) => msg !== prev);
+          const randomIndex = Math.floor(Math.random() * others.length);
+          return others[randomIndex];
+        });
+        setMessageFade(true);
+      }, 300);
+    }, 2400);
+
+    return () => clearInterval(interval);
+  }, [visible]);
 
   useEffect(() => {
     // If already loaded in memory/cache during this session, do not show loader
@@ -102,10 +140,14 @@ export default function SmartLoader() {
           </p>
         </div>
 
-        {/* LOADING TEXT: "Loading Gaming Experience..." */}
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="text-sm md:text-base font-mono font-bold text-cyber-cyan tracking-wider uppercase animate-pulse">
-            Loading Gaming Experience...
+        {/* LOADING TEXT: Dynamic Gaming-Themed Message with Fade Transition */}
+        <div className="mb-6 flex items-center justify-center gap-2 min-h-[32px]">
+          <span
+            className={`text-sm md:text-base font-mono font-bold text-cyber-cyan tracking-wider uppercase transition-opacity duration-300 ease-in-out ${
+              messageFade ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {loadingMessage}
           </span>
         </div>
 
@@ -137,7 +179,7 @@ export default function SmartLoader() {
               <span>Network connection is slow...</span>
             </div>
             <p className="text-[11px] text-gray-400 font-sans">
-              Continuing automatic synchronization without freezing your session.
+              Continuing automatic loading without freezing your session.
             </p>
             <button
               onClick={handleRetry}
