@@ -35,6 +35,8 @@ export interface ContentPost {
   channelUrl?: string;
   gameLink?: string;
   imageLink?: string;
+  authorEmail?: string;
+  authorWebsite?: string;
 }
 
 export interface NavMenu {

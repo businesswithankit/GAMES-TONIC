@@ -187,6 +187,8 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     category: '',
     tags: [],
     author: 'Admin',
+    authorEmail: '',
+    authorWebsite: '',
     publishDate: new Date().toISOString().split('T')[0],
     status: 'published',
     featured: false,
@@ -928,6 +930,8 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
         category: '',
         tags: [],
         author: 'Admin',
+        authorEmail: '',
+        authorWebsite: '',
         publishDate: new Date().toISOString().split('T')[0],
         status: 'published',
         featured: false,
@@ -957,6 +961,8 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       category: post.category || '',
       tags: post.tags || [],
       author: post.author || 'Admin',
+      authorEmail: post.authorEmail || '',
+      authorWebsite: post.authorWebsite || '',
       publishDate: post.publishDate || new Date().toISOString().split('T')[0],
       status: post.status || 'published',
       featured: !!post.featured,
@@ -2733,11 +2739,33 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1.5 font-bold">Author Signature</label>
+                    <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1.5 font-bold">Content Author</label>
                     <input
                       type="text"
                       value={postForm.author}
                       onChange={(e) => setPostForm({ ...postForm, author: e.target.value })}
+                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1.5 font-bold">Contact Email</label>
+                    <input
+                      type="email"
+                      value={postForm.authorEmail || ''}
+                      onChange={(e) => setPostForm({ ...postForm, authorEmail: e.target.value })}
+                      placeholder="author@example.com"
+                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1.5 font-bold">Official Profile / Website</label>
+                    <input
+                      type="url"
+                      value={postForm.authorWebsite || ''}
+                      onChange={(e) => setPostForm({ ...postForm, authorWebsite: e.target.value })}
+                      placeholder="https://authorwebsite.com"
                       className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs"
                     />
                   </div>

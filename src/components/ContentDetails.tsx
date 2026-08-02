@@ -27,14 +27,6 @@ interface ContentDetailsProps {
   adsenseUnits?: AdSenseUnit[];
 }
 
-interface ActionButtonConfig {
-  key: string;
-  label: string;
-  url: string;
-  icon: React.ReactNode;
-  variant: 'magenta' | 'green' | 'gradient' | 'cyan' | 'neutral';
-}
-
 export default function ContentDetails({
   post,
   onClose,
@@ -60,7 +52,7 @@ export default function ContentDetails({
         });
         return;
       } catch (err) {
-        // Fallback to clipboard/modal
+        // Fallback to clipboard
       }
     }
     setShowShareModal(true);
@@ -81,10 +73,8 @@ export default function ContentDetails({
   };
 
   const type = post.type?.toLowerCase().trim() || 'content';
-  const isGame = type === 'games';
-  const isMod = type === 'mods';
-  const isUpcoming = type === 'upcoming';
-  const isContent = !isGame && !isMod && !isUpcoming;
+  // A Featured Game popup is determined if the type is games or featured is active or if category is featured game
+  const isFeaturedGamePopup = type === 'games' || post.featured === true || post.category === 'FEATURED GAME';
 
   // Safe tag extraction
   const tagList = Array.isArray(post.tags)
@@ -93,139 +83,169 @@ export default function ContentDetails({
     ? (post.tags as string).split(',').map((t) => t.trim()).filter(Boolean)
     : [];
 
-  // Determine single image used everywhere (no second or third image properties)
   const heroImage = post.thumbnail || post.imageLink;
 
-  // URLs resolution for Action Buttons
   const isValidUrl = (url?: string): boolean => {
     if (!url || typeof url !== 'string') return false;
     const trimmed = url.trim();
     return trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('www.');
   };
 
-  const watchUrl = (
-    (type === 'videos' && post.buttonLink ? post.buttonLink : undefined) ||
-    post.channelUrl ||
-    (post.buttonText?.toLowerCase().includes('watch') ? post.buttonLink : undefined) ||
-    (post.videoEmbed && isValidUrl(post.videoEmbed) ? post.videoEmbed : undefined)
-  )?.trim();
-
-  const downloadUrl = (
-    post.downloadLink ||
-    post.extraLink ||
-    (type === 'mods' && post.buttonLink ? post.buttonLink : undefined) ||
-    (post.buttonText?.toLowerCase().includes('download') ? post.buttonLink : undefined)
-  )?.trim();
-
-  const promptUrl = (
-    post.promptLink ||
-    (post.buttonText?.toLowerCase().includes('prompt') ? post.buttonLink : undefined)
-  )?.trim();
-
-  const websiteUrl = (
-    post.websiteLink ||
-    post.officialWebsite ||
-    post.gameLink ||
-    (type === 'games' && post.buttonLink ? post.buttonLink : undefined) ||
-    post.developerWebsite ||
-    post.buttonLink
-  )?.trim();
-
-  const sourceUrl = (
-    (post.source && isValidUrl(post.source) ? post.source : undefined) ||
-    (post.developerWebsite && post.developerWebsite !== websiteUrl ? post.developerWebsite : undefined)
-  )?.trim();
-
-  // Primary Action Button styling determination (Gradient goes to the first active CTA)
-  const hasPrompt = isValidUrl(promptUrl);
-  const hasDownload = isValidUrl(downloadUrl);
-  const hasWatch = isValidUrl(watchUrl);
-  const hasWebsite = isValidUrl(websiteUrl);
-
-  const actionButtons: ActionButtonConfig[] = [];
-  const usedUrls = new Set<string>();
-
-  // 1. WATCH NOW
-  if (hasWatch && isValidUrl(watchUrl) && !usedUrls.has(watchUrl!)) {
-    const isPrimary = !hasDownload && !hasPrompt;
-    actionButtons.push({
-      key: 'watch',
-      label: 'WATCH NOW',
-      url: watchUrl!,
-      icon: <Video className="w-4 h-4 shrink-0" />,
-      variant: isPrimary ? 'gradient' : 'magenta'
-    });
-    usedUrls.add(watchUrl!);
-  }
-
-  // 2. DOWNLOAD
-  if (hasDownload && isValidUrl(downloadUrl) && !usedUrls.has(downloadUrl!)) {
-    const isPrimary = !hasPrompt;
-    actionButtons.push({
-      key: 'download',
-      label: 'DOWNLOAD',
-      url: downloadUrl!,
-      icon: <Download className="w-4 h-4 shrink-0" />,
-      variant: isPrimary ? 'gradient' : 'green'
-    });
-    usedUrls.add(downloadUrl!);
-  }
-
-  // 3. GET PROMPT (Always receives gradient if present)
-  if (hasPrompt && isValidUrl(promptUrl) && !usedUrls.has(promptUrl!)) {
-    actionButtons.push({
-      key: 'prompt',
-      label: 'GET PROMPT',
-      url: promptUrl!,
-      icon: <Sparkles className="w-4 h-4 shrink-0" />,
-      variant: 'gradient'
-    });
-    usedUrls.add(promptUrl!);
-  }
-
-  // 4. OFFICIAL WEBSITE
-  if (hasWebsite && isValidUrl(websiteUrl) && !usedUrls.has(websiteUrl!)) {
-    const isPrimary = !hasPrompt && !hasDownload && !hasWatch;
-    actionButtons.push({
-      key: 'website',
-      label: 'OFFICIAL WEBSITE',
-      url: websiteUrl!,
-      icon: <Globe className="w-4 h-4 shrink-0" />,
-      variant: isPrimary ? 'gradient' : 'cyan'
-    });
-    usedUrls.add(websiteUrl!);
-  }
-
-  // 5. OFFICIAL SOURCE
-  if (sourceUrl && isValidUrl(sourceUrl) && !usedUrls.has(sourceUrl)) {
-    actionButtons.push({
-      key: 'source',
-      label: 'OFFICIAL SOURCE',
-      url: sourceUrl,
-      icon: <ExternalLink className="w-4 h-4 shrink-0" />,
-      variant: 'neutral'
-    });
-    usedUrls.add(sourceUrl);
-  }
-
-  // Creator identity label resolve (strict professional tags)
-  const getCreatorLabel = () => {
-    if (isGame) return 'Developer';
-    if (isMod) return 'Content Creator';
-    if (isUpcoming) return 'Published By';
-    return 'Author'; // standard content type
-  };
-
-  const creatorName = (
-    post.developerName ||
-    post.author
-  )?.trim();
-
-  const finalCreatorName = creatorName === 'Admin' || !creatorName ? 'GAMES TONIC' : creatorName;
-
   const fullDesc = (post.description || post.content)?.trim();
   const shortDesc = post.shortDescription?.trim();
-  const showFullDesc = fullDesc && fullDesc !== '';
+
+  // ----------------------------------------------------
+  // BUTTONS CONFIGURATION
+  // ----------------------------------------------------
+  const actionButtons: { key: string; label: string; url: string; icon: React.ReactNode; variant: string }[] = [];
+
+  if (isFeaturedGamePopup) {
+    // Featured Game Popup Buttons (Strict order & priority)
+    // 1st (Primary CTA): GET PROMPT (Gradient button, Only if Prompt URL exists)
+    if (post.promptLink && isValidUrl(post.promptLink)) {
+      actionButtons.push({
+        key: 'prompt',
+        label: 'GET PROMPT',
+        url: post.promptLink,
+        icon: <Sparkles className="w-4 h-4 shrink-0" />,
+        variant: 'gradient'
+      });
+    }
+
+    // 2nd (Secondary CTA): PLAY NOW (If Download/Game URL exists)
+    const targetDownloadUrl = post.websiteLink || post.gameLink;
+    if (targetDownloadUrl && isValidUrl(targetDownloadUrl)) {
+      actionButtons.push({
+        key: 'download',
+        label: 'PLAY NOW',
+        url: targetDownloadUrl,
+        icon: <Download className="w-4 h-4 shrink-0" />,
+        variant: 'green'
+      });
+    }
+
+    // 3rd: OFFICIAL WEBSITE (Only if Website exists)
+    if (post.developerWebsite && isValidUrl(post.developerWebsite)) {
+      actionButtons.push({
+        key: 'website',
+        label: 'OFFICIAL WEBSITE',
+        url: post.developerWebsite,
+        icon: <Globe className="w-4 h-4 shrink-0" />,
+        variant: 'cyan'
+      });
+    }
+
+    // 4th: OFFICIAL SOURCE (Optional, e.g. source URL / officialWebsite, check if distinct)
+    const targetSource = post.source || post.officialWebsite;
+    if (targetSource && isValidUrl(targetSource) && targetSource !== post.developerWebsite && targetSource !== targetDownloadUrl) {
+      actionButtons.push({
+        key: 'source',
+        label: 'OFFICIAL SOURCE',
+        url: targetSource,
+        icon: <ExternalLink className="w-4 h-4 shrink-0" />,
+        variant: 'neutral'
+      });
+    }
+  } else {
+    // Standard Content Popup Buttons (Watch, Download, Prompt, Website, Source)
+    const watchUrl = (
+      (type === 'videos' && post.buttonLink ? post.buttonLink : undefined) ||
+      post.channelUrl ||
+      (post.buttonText?.toLowerCase().includes('watch') ? post.buttonLink : undefined) ||
+      (post.videoEmbed && isValidUrl(post.videoEmbed) ? post.videoEmbed : undefined)
+    )?.trim();
+
+    const downloadUrl = (
+      post.downloadLink ||
+      post.extraLink ||
+      (type === 'mods' && post.buttonLink ? post.buttonLink : undefined) ||
+      (post.buttonText?.toLowerCase().includes('download') ? post.buttonLink : undefined)
+    )?.trim();
+
+    const promptUrl = (
+      post.promptLink ||
+      (post.buttonText?.toLowerCase().includes('prompt') ? post.buttonLink : undefined)
+    )?.trim();
+
+    const websiteUrl = (
+      post.websiteLink ||
+      post.officialWebsite ||
+      post.gameLink ||
+      (type === 'games' && post.buttonLink ? post.buttonLink : undefined) ||
+      post.authorWebsite ||
+      post.buttonLink
+    )?.trim();
+
+    const sourceUrl = (
+      (post.source && isValidUrl(post.source) ? post.source : undefined) ||
+      (post.authorWebsite && post.authorWebsite !== websiteUrl ? post.authorWebsite : undefined)
+    )?.trim();
+
+    const hasPrompt = isValidUrl(promptUrl);
+    const hasDownload = isValidUrl(downloadUrl);
+    const hasWatch = isValidUrl(watchUrl);
+    const hasWebsite = isValidUrl(websiteUrl);
+
+    const usedUrls = new Set<string>();
+
+    if (hasWatch && !usedUrls.has(watchUrl!)) {
+      const isPrimary = !hasDownload && !hasPrompt;
+      actionButtons.push({
+        key: 'watch',
+        label: 'WATCH NOW',
+        url: watchUrl!,
+        icon: <Video className="w-4 h-4 shrink-0" />,
+        variant: isPrimary ? 'gradient' : 'magenta'
+      });
+      usedUrls.add(watchUrl!);
+    }
+
+    if (hasDownload && !usedUrls.has(downloadUrl!)) {
+      const isPrimary = !hasPrompt;
+      actionButtons.push({
+        key: 'download',
+        label: 'DOWNLOAD',
+        url: downloadUrl!,
+        icon: <Download className="w-4 h-4 shrink-0" />,
+        variant: isPrimary ? 'gradient' : 'green'
+      });
+      usedUrls.add(downloadUrl!);
+    }
+
+    if (hasPrompt && !usedUrls.has(promptUrl!)) {
+      actionButtons.push({
+        key: 'prompt',
+        label: 'GET PROMPT',
+        url: promptUrl!,
+        icon: <Sparkles className="w-4 h-4 shrink-0" />,
+        variant: 'gradient'
+      });
+      usedUrls.add(promptUrl!);
+    }
+
+    if (hasWebsite && !usedUrls.has(websiteUrl!)) {
+      const isPrimary = !hasPrompt && !hasDownload && !hasWatch;
+      actionButtons.push({
+        key: 'website',
+        label: 'OFFICIAL PROFILE / WEBSITE',
+        url: websiteUrl!,
+        icon: <Globe className="w-4 h-4 shrink-0" />,
+        variant: isPrimary ? 'gradient' : 'cyan'
+      });
+      usedUrls.add(websiteUrl!);
+    }
+
+    if (sourceUrl && isValidUrl(sourceUrl) && !usedUrls.has(sourceUrl)) {
+      actionButtons.push({
+        key: 'source',
+        label: 'OFFICIAL SOURCE',
+        url: sourceUrl,
+        icon: <ExternalLink className="w-4 h-4 shrink-0" />,
+        variant: 'neutral'
+      });
+      usedUrls.add(sourceUrl);
+    }
+  }
 
   return (
     <div
@@ -238,8 +258,7 @@ export default function ContentDetails({
       >
         {/* Sticky Header with Badges */}
         <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-[#07070d]/95 backdrop-blur-md border-b border-white/5">
-          <div className="flex items-center gap-2.5 overflow-hidden pr-4">
-            {/* 1. Category Badge */}
+          <div className="flex items-center gap-2.5 overflow-hidden pr-4 text-left">
             {post.category && post.category.trim() !== '' && (
               <span
                 onClick={() => {
@@ -251,7 +270,6 @@ export default function ContentDetails({
                 {post.category}
               </span>
             )}
-            {/* 2. Optional Featured Badge */}
             {post.featured && (
               <span className="text-[10px] uppercase font-display font-bold tracking-widest text-cyber-magenta bg-cyber-magenta/15 border border-cyber-magenta/30 px-3 py-1 rounded-full shrink-0">
                 ★ FEATURED
@@ -264,7 +282,7 @@ export default function ContentDetails({
           <button
             onClick={onClose}
             id="detail-close-btn"
-            className="p-2.5 bg-black/70 border border-white/10 text-white rounded-full hover:border-cyber-cyan hover:text-cyber-cyan hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all cursor-pointer shrink-0 ml-2"
+            className="p-2.5 bg-black/70 border border-white/10 text-white rounded-full hover:border-cyber-cyan hover:text-cyber-cyan hover:shadow-[0_0_12px_rgba(0,240,255,0.4)] transition-all cursor-pointer shrink-0 ml-2 text-xs font-bold"
             title="Close"
           >
             ✕
@@ -273,7 +291,7 @@ export default function ContentDetails({
 
         {/* Scrollable Popup Content Body */}
         <div className="overflow-y-auto max-h-[calc(90vh-72px)] p-6 md:p-8 space-y-6">
-          {/* 3. Image (strictly one single image used everywhere) */}
+          {/* Main Visual Asset (strictly one single image) */}
           {heroImage && (
             <div className="relative w-full aspect-video max-h-[400px] rounded-2xl overflow-hidden bg-black/60 border border-white/10 shadow-lg">
               <img
@@ -286,7 +304,7 @@ export default function ContentDetails({
             </div>
           )}
 
-          {/* Render embedded video trailer instead if present and no main image (upcoming/videos) */}
+          {/* Render embedded video trailer instead if present and no main image */}
           {!heroImage && (post.embedCode || post.videoEmbed) && (
             <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/80 shadow-lg">
               {post.embedCode ? (
@@ -305,7 +323,7 @@ export default function ContentDetails({
             </div>
           )}
 
-          {/* 4. Title & 5. Short Description */}
+          {/* Title & Short Description */}
           <div className="space-y-3 text-left">
             {post.title && post.title.trim() !== '' && (
               <h1 className="text-2xl sm:text-4xl font-display font-black text-white tracking-wide uppercase">
@@ -319,25 +337,13 @@ export default function ContentDetails({
             )}
           </div>
 
-          {/* 6. Full Description */}
-          {showFullDesc && (
-            <div className="text-left space-y-2">
-              <h3 className="text-xs font-display font-bold text-cyber-cyan uppercase tracking-wider">About Content</h3>
-              <div className="p-5 sm:p-6 bg-black/40 border border-white/5 rounded-2xl text-gray-300 font-sans text-sm sm:text-base leading-relaxed whitespace-pre-line text-left">
-                {fullDesc}
-              </div>
+          {/* About Content (Displays description only, never auto insert Developer name) */}
+          <div className="text-left space-y-2">
+            <h3 className="text-xs font-display font-bold text-cyber-cyan uppercase tracking-wider">About Content</h3>
+            <div className="p-5 sm:p-6 bg-black/40 border border-white/5 rounded-2xl text-gray-300 font-sans text-sm sm:text-base leading-relaxed whitespace-pre-line text-left">
+              {fullDesc && fullDesc !== '' ? fullDesc : "No additional content information available."}
             </div>
-          )}
-
-          {/* Dynamic Sections by Type */}
-          {isMod && post.credits && (
-            <div className="text-left space-y-2">
-              <h3 className="text-xs font-display font-bold text-cyber-purple uppercase tracking-wider">Mod Requirements & Credits</h3>
-              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl text-xs text-gray-400 font-mono leading-relaxed whitespace-pre-line">
-                {post.credits}
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* AdSense / Ad Placement inside Popup */}
           <div className="my-4">
@@ -345,95 +351,208 @@ export default function ContentDetails({
             <AdPlacement position="blog_top" ads={ads} />
           </div>
 
-          {/* 7. Creator Info, 8. Publish Date, 9. Last Updated (strictly professional grids, hide empty) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 text-left">
-            {/* Creator / Publisher */}
-            {finalCreatorName && (
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                  <User className="w-4 h-4 text-cyber-cyan" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
-                    {getCreatorLabel()}
-                  </span>
-                  <div className="text-xs text-gray-200 truncate font-semibold uppercase">
-                    {finalCreatorName}
+          {/* Render Different Credit Blocks based on Popup Type */}
+          {isFeaturedGamePopup ? (
+            // ==========================================
+            // FEATURED GAME POPUP INFO CARDS
+            // ==========================================
+            <div className="text-left space-y-3">
+              <h3 className="text-xs font-display font-bold text-cyber-cyan uppercase tracking-wider">Game Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Developer */}
+                {post.developerName && post.developerName.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <User className="w-4 h-4 text-cyber-cyan" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Developer</span>
+                      <div className="text-xs text-gray-200 truncate font-semibold uppercase">{post.developerName}</div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Email (Games/Featured) */}
-            {isGame && post.developerEmail && (
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                  <ShieldCheck className="w-4 h-4 text-cyber-purple" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
-                    Support Email
-                  </span>
-                  <div className="text-xs text-gray-200 truncate font-mono">
-                    {post.developerEmail}
+                {/* Support Email */}
+                {post.developerEmail && post.developerEmail.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <ShieldCheck className="w-4 h-4 text-cyber-purple" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Support Email</span>
+                      <div className="text-xs text-gray-200 truncate font-mono">{post.developerEmail}</div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Version */}
-            {(isGame || isMod) && post.version && (
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                  <Info className="w-4 h-4 text-cyber-magenta" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
-                    Version Index
-                  </span>
-                  <div className="text-xs text-gray-200 truncate font-mono font-bold">
-                    v{post.version}
+                {/* Official Website (Must appear as information card AND button) */}
+                {post.developerWebsite && post.developerWebsite.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <Globe className="w-4 h-4 text-cyber-cyan" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Official Website</span>
+                      <a href={post.developerWebsite} target="_blank" rel="noopener noreferrer" className="text-xs text-cyber-cyan truncate font-mono hover:underline block">
+                        {post.developerWebsite}
+                      </a>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* 8. Publish Date */}
-            {post.publishDate && post.publishDate.trim() !== '' && (
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
-                    {isUpcoming ? 'Release Target' : 'Published Date'}
-                  </span>
-                  <div className="text-xs text-gray-200 truncate font-mono">
-                    {post.publishDate}
+                {/* Prompt URL */}
+                {post.promptLink && post.promptLink.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <Sparkles className="w-4 h-4 text-cyber-magenta" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Prompt URL</span>
+                      <a href={post.promptLink} target="_blank" rel="noopener noreferrer" className="text-xs text-cyber-cyan truncate font-mono hover:underline block">
+                        {post.promptLink}
+                      </a>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* 9. Last Updated */}
-            {post.updatedDate && post.updatedDate.trim() !== '' && (
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                  <CalendarDays className="w-4 h-4 text-gray-400" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
-                    Last Updated
-                  </span>
-                  <div className="text-xs text-gray-200 truncate font-mono">
-                    {post.updatedDate}
+                {/* Download URL */}
+                {(post.websiteLink || post.gameLink) && (post.websiteLink || post.gameLink)!.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <Download className="w-4 h-4 text-green-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Download URL</span>
+                      <a href={post.websiteLink || post.gameLink} target="_blank" rel="noopener noreferrer" className="text-xs text-cyber-cyan truncate font-mono hover:underline block">
+                        {post.websiteLink || post.gameLink}
+                      </a>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
+                )}
 
-          {/* Embedded Trailer Video for Upcoming or Guides (if main image is rendered) */}
+                {/* Version */}
+                {post.version && post.version.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <Info className="w-4 h-4 text-cyber-magenta" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Version</span>
+                      <div className="text-xs text-gray-200 truncate font-mono font-bold">v{post.version}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Published Date */}
+                {post.publishDate && post.publishDate.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Published Date</span>
+                      <div className="text-xs text-gray-200 truncate font-mono">{post.publishDate}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Last Updated */}
+                {post.updatedDate && post.updatedDate.trim() !== '' && (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                      <CalendarDays className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">Last Updated</span>
+                      <div className="text-xs text-gray-200 truncate font-mono">{post.updatedDate}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            // ==========================================
+            // CONTENT POPUP - STRUCTURED SINGLE CREDIT BLOCK
+            // ==========================================
+            <div className="space-y-4">
+              <div className="border-t border-white/10 my-6" />
+              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 text-left space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Published By */}
+                  <div>
+                    <span className="text-[10px] text-gray-500 font-mono uppercase block mb-1">
+                      Published By
+                    </span>
+                    <div className="text-xs text-gray-200 truncate font-semibold uppercase">
+                      {post.author && post.author.trim() !== '' && post.author !== 'Admin' ? post.author : 'GAMES TONIC'}
+                    </div>
+                  </div>
+
+                  {/* Published Date */}
+                  {post.publishDate && post.publishDate.trim() !== '' && (
+                    <div>
+                      <span className="text-[10px] text-gray-500 font-mono uppercase block mb-1">
+                        Published Date
+                      </span>
+                      <div className="text-xs text-gray-200 truncate font-mono">
+                        {post.publishDate}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Official Website (optional) */}
+                  {post.authorWebsite && post.authorWebsite.trim() !== '' && (
+                    <div>
+                      <span className="text-[10px] text-gray-500 font-mono uppercase block mb-1">
+                        Official Profile / Website
+                      </span>
+                      <a
+                        href={post.authorWebsite}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-cyber-cyan hover:underline font-mono truncate block"
+                      >
+                        {post.authorWebsite}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Contact Email (optional) */}
+                  {post.authorEmail && post.authorEmail.trim() !== '' && (
+                    <div>
+                      <span className="text-[10px] text-gray-500 font-mono uppercase block mb-1">
+                        Contact Email
+                      </span>
+                      <div className="text-xs text-gray-200 truncate font-mono">
+                        {post.authorEmail}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tags inside the Credit block */}
+                {tagList.length > 0 && (
+                  <div className="pt-3 border-t border-white/5 flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-gray-500 font-mono uppercase mr-1 shrink-0">Tags:</span>
+                    {tagList.map((t, idx) => (
+                      <span
+                        key={idx}
+                        onClick={() => {
+                          onClose();
+                          onTagClick?.(t);
+                        }}
+                        className="px-2.5 py-0.5 bg-white/5 border border-white/10 hover:border-cyber-cyan rounded text-xs font-mono text-gray-300 uppercase transition-colors cursor-pointer"
+                      >
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Embedded Trailer Video Section (if main image is rendered and trailer is also configured) */}
           {heroImage && (post.embedCode || post.videoEmbed) && (
             <div className="text-left space-y-2 pt-2">
               <h3 className="text-xs font-display font-bold text-cyber-magenta uppercase tracking-wider">Video Experience</h3>
@@ -455,28 +574,9 @@ export default function ContentDetails({
             </div>
           )}
 
-          {/* 10. Tags list */}
-          {tagList.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 pt-2 text-left">
-              <Tag className="w-4 h-4 text-cyber-cyan mr-1 shrink-0" />
-              {tagList.map((t, idx) => (
-                <span
-                  key={idx}
-                  onClick={() => {
-                    onClose();
-                    onTagClick?.(t);
-                  }}
-                  className="px-3 py-1 bg-white/5 border border-white/10 hover:border-cyber-cyan rounded-lg text-xs font-mono text-gray-300 uppercase transition-colors cursor-pointer"
-                >
-                  #{t}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* 11. Action Buttons & 12. Share Button (Strict order & visual prioritization) */}
+          {/* Action Buttons & Share Button */}
           <div className="pt-6 border-t border-white/5 flex flex-wrap items-center gap-3">
-            {/* 11. Action Buttons */}
+            {/* Action Buttons (Strict order & priority) */}
             {actionButtons.map((btn) => {
               let btnClass = "px-5 py-3 rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 border ";
               if (btn.variant === 'gradient') {
@@ -503,7 +603,7 @@ export default function ContentDetails({
               );
             })}
 
-            {/* 12. Share Button (Identical sizing, padding, and font size as action buttons) */}
+            {/* Share Button (Identical sizing & padding) */}
             <button
               onClick={handleShareClick}
               className="ml-auto px-5 py-3 bg-black/60 hover:bg-cyber-cyan/15 border border-white/10 hover:border-cyber-cyan text-gray-300 hover:text-cyber-cyan font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
