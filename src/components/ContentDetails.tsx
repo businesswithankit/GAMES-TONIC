@@ -247,10 +247,9 @@ export default function ContentDetails({
     }
   }
 
-  // Deduplicate custom admin button: do not render if its link is already in usedUrls or if it is a featured game popup
+  // Deduplicate custom admin button: do not render if its link is already in usedUrls
   const showCustomAdminBtn = hasCustomAdminBtn && 
     post.buttonLink && 
-    !isFeaturedGamePopup && 
     !usedUrls.has(post.buttonLink.trim());
 
   return (

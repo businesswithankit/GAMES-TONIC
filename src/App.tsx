@@ -947,7 +947,7 @@ export default function App() {
         description={siteSettings.maintenance?.description || "We're upgrading Games Tonic with new features, performance improvements, and a better gaming experience. We'll be back shortly."}
         statusLine={siteSettings.maintenance?.status}
         showSocialIcons={siteSettings.maintenance?.showSocialIcons !== false}
-        socialLinks={siteSettings.socialLinks}
+        siteSettings={siteSettings}
         onRefresh={handleRecheckMaintenance}
       />
     );
