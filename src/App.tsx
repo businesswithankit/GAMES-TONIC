@@ -1220,43 +1220,67 @@ export default function App() {
                               </div>
                             ) : (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {videos.sort((a,b) => (a.position || 0) - (b.position || 0)).slice(0, 4).map((video) => (
-                                  <div 
-                                    key={video.id} 
-                                    className="p-4 glass-panel rounded-2xl border border-white/5 flex flex-col justify-between space-y-4 bg-black/45 hover:border-cyber-purple/35 transition-all shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
-                                  >
-                                    <div className="space-y-4">
-                                      <div 
-                                        className="relative w-full aspect-video rounded-xl overflow-hidden [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_iframe]:aspect-video filter drop-shadow-md bg-black/80" 
-                                        dangerouslySetInnerHTML={{ __html: video.embedCode }}
-                                      />
-                                      <div className="space-y-1 py-1 text-left">
-                                        <h3 className="font-display font-black text-white text-base tracking-wide uppercase line-clamp-1">
-                                          {video.title}
-                                        </h3>
-                                        {video.description && (
-                                          <p className="text-xs text-gray-400 line-clamp-2 font-sans leading-relaxed">
-                                            {video.description}
-                                          </p>
-                                        )}
+                                {videos.sort((a,b) => (a.position || 0) - (b.position || 0)).slice(0, 4).map((video) => {
+                                  const videoPost: ContentPost = {
+                                    id: video.id,
+                                    title: video.title,
+                                    slug: video.id,
+                                    thumbnail: video.thumbnail || '',
+                                    banner: video.thumbnail || '',
+                                    description: video.description || '',
+                                    shortDescription: video.description || '',
+                                    author: '',
+                                    publishDate: '',
+                                    category: video.category || 'VIDEOS',
+                                    tags: [],
+                                    buttonText: video.buttonText || 'WATCH NOW',
+                                    buttonLink: video.buttonLink,
+                                    embedCode: video.embedCode,
+                                    type: 'videos',
+                                    status: 'published',
+                                    linkEnabled: video.linkEnabled !== false,
+                                    featured: video.featured
+                                  };
+                                  return (
+                                    <div 
+                                      key={video.id} 
+                                      onClick={() => setSelectedPost(videoPost)}
+                                      className="p-4 glass-panel rounded-2xl border border-white/5 flex flex-col justify-between space-y-4 bg-black/45 hover:border-cyber-purple/35 transition-all shadow-[0_4px_24px_rgba(0,0,0,0.6)] cursor-pointer"
+                                    >
+                                      <div className="space-y-4">
+                                        <div 
+                                          className="relative w-full aspect-video rounded-xl overflow-hidden [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_iframe]:aspect-video filter drop-shadow-md bg-black/80 pointer-events-none" 
+                                          dangerouslySetInnerHTML={{ __html: video.embedCode }}
+                                        />
+                                        <div className="space-y-1 py-1 text-left">
+                                          <h3 className="font-display font-black text-white text-base tracking-wide uppercase line-clamp-1">
+                                            {video.title}
+                                          </h3>
+                                          {video.description && (
+                                            <p className="text-xs text-gray-400 line-clamp-2 font-sans leading-relaxed">
+                                              {video.description}
+                                            </p>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
 
-                                    {sec.enableActionButtons !== false && video.buttonLink && video.linkEnabled !== false && (
-                                      <div className="pt-3 border-t border-white/5 font-sans">
-                                        <button 
-                                          onClick={() => {
-                                            window.open(video.buttonLink, '_blank');
-                                          }}
-                                          className="w-full py-2 bg-gradient-to-r from-cyber-magenta/20 to-cyber-purple/20 hover:from-cyber-magenta/35 hover:to-cyber-purple/35 border border-white/10 hover:border-cyber-magenta/30 text-xs font-black font-display tracking-widest uppercase text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                        >
-                                          <span>{video.buttonText || 'Watch Video'}</span>
-                                          <ArrowRight className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
+                                      {sec.enableActionButtons !== false && video.buttonLink && video.linkEnabled !== false && (
+                                        <div className="pt-3 border-t border-white/5 font-sans">
+                                          <button 
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedPost(videoPost);
+                                            }}
+                                            className="w-full py-2 bg-gradient-to-r from-cyber-magenta/20 to-cyber-purple/20 hover:from-cyber-magenta/35 hover:to-cyber-purple/35 border border-white/10 hover:border-cyber-magenta/30 text-xs font-black font-display tracking-widest uppercase text-white rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                          >
+                                            <span>{video.buttonText || 'Watch Video'}</span>
+                                            <ArrowRight className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </section>

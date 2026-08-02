@@ -1938,7 +1938,11 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   };
 
   const handleTagsCheckboxToggle = (t: string) => {
-    const currentTags = postForm.tags || [];
+    const currentTags = Array.isArray(postForm.tags)
+      ? postForm.tags
+      : typeof postForm.tags === 'string' && postForm.tags.trim()
+      ? postForm.tags.split(',').map((item) => item.trim()).filter(Boolean)
+      : [];
     const exists = currentTags.includes(t);
     if (exists) {
       setPostForm(prev => ({ ...prev, tags: currentTags.filter(tg => tg !== t) }));
