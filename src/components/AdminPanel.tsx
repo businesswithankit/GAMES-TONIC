@@ -144,14 +144,10 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     gameLink: '',
     promptLink: '',
     imageLink: '',
-    thumbnail: '',
-    shortDescription: '',
-    description: '',
     category: 'FEATURED GAME',
     version: '1.0',
     publishDate: '',
     updatedDate: '',
-    tags: '',
     status: 'published',
     position: 0
   });
@@ -183,8 +179,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     title: '',
     slug: '',
     thumbnail: '',
-    banner: '',
-    cover: '',
     buttonText: '',
     buttonLink: '',
     linkEnabled: true,
@@ -196,8 +190,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     publishDate: new Date().toISOString().split('T')[0],
     status: 'published',
     featured: false,
-    seoTitle: '',
-    seoDescription: '',
     extraLink: '',
     viewsCount: 0
   });
@@ -596,12 +588,12 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       return;
     }
 
-    if (!validateUrl(featuredGameForm.imageLink) || !validateUrl(featuredGameForm.gameLink) || !validateUrl(featuredGameForm.promptLink) || !validateUrl(featuredGameForm.developerWebsite) || !validateUrl(featuredGameForm.thumbnail)) {
+    if (!validateUrl(featuredGameForm.imageLink) || !validateUrl(featuredGameForm.gameLink) || (featuredGameForm.promptLink && !validateUrl(featuredGameForm.promptLink)) || (featuredGameForm.developerWebsite && !validateUrl(featuredGameForm.developerWebsite))) {
       showToast("Please enter valid URL formats for links/images.", "error");
       return;
     }
 
-    if (!validateEmail(featuredGameForm.developerEmail)) {
+    if (featuredGameForm.developerEmail && !validateEmail(featuredGameForm.developerEmail)) {
       showToast("Please enter a valid developer email address.", "error");
       return;
     }
@@ -639,14 +631,10 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
         gameLink: '',
         promptLink: '',
         imageLink: '',
-        thumbnail: '',
-        shortDescription: '',
-        description: '',
         category: 'FEATURED GAME',
         version: '1.0',
         publishDate: '',
         updatedDate: '',
-        tags: '',
         status: 'published',
         position: 0
       });
@@ -655,11 +643,11 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     } catch (err: any) {
       const msg = err?.message || '';
       if (msg.includes('PERMISSION_DENIED') || msg.includes('Permission denied')) {
-        showToast("Permission denied: You must be signed in as an authorized admin to modify Featured Games.", "error");
+         showToast("Permission denied: You must be signed in as an authorized admin to modify Featured Games.", "error");
       } else if (msg.includes('network') || msg.includes('NETWORK')) {
-        showToast("Network error: Could not connect to database.", "error");
+         showToast("Network error: Could not connect to database.", "error");
       } else {
-        showToast("Error saving Featured Game: " + msg, "error");
+         showToast("Error saving Featured Game: " + msg, "error");
       }
     }
     setIsLoading(false);
@@ -675,14 +663,10 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       gameLink: item.gameLink || '',
       promptLink: item.promptLink || '',
       imageLink: item.imageLink || '',
-      thumbnail: item.thumbnail || '',
-      shortDescription: item.shortDescription || '',
-      description: item.description || '',
       category: item.category || 'FEATURED GAME',
       version: item.version || '1.0',
       publishDate: item.publishDate || '',
       updatedDate: item.updatedDate || '',
-      tags: Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || ''),
       status: item.status || 'published',
       position: item.position || 0
     });
@@ -936,8 +920,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
         title: '',
         slug: '',
         thumbnail: '',
-        banner: '',
-        cover: '',
         buttonText: '',
         buttonLink: '',
         linkEnabled: true,
@@ -949,8 +931,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
         publishDate: new Date().toISOString().split('T')[0],
         status: 'published',
         featured: false,
-        seoTitle: '',
-        seoDescription: '',
         extraLink: '',
         viewsCount: 0
       });
@@ -969,8 +949,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       title: post.title,
       slug: post.slug,
       thumbnail: post.thumbnail || '',
-      banner: post.banner || '',
-      cover: post.cover || '',
       buttonText: post.buttonText || '',
       buttonLink: post.buttonLink || '',
       linkEnabled: post.linkEnabled !== false,
@@ -982,8 +960,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
       publishDate: post.publishDate || new Date().toISOString().split('T')[0],
       status: post.status || 'published',
       featured: !!post.featured,
-      seoTitle: post.seoTitle || '',
-      seoDescription: post.seoDescription || '',
       extraLink: post.extraLink || '',
       viewsCount: post.viewsCount || 0
     });
@@ -2529,31 +2505,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                     )}
                   </div>
 
-                  {/* Field 8: Thumbnail Image URL */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
-                      Thumbnail Image URL (Optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={featuredGameForm.thumbnail || ''}
-                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, thumbnail: e.target.value })}
-                      placeholder="e.g. https://images.unsplash.com/photo-thumbnail"
-                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
-                    />
-                    {featuredGameForm.thumbnail && (
-                      <div className="mt-3 relative aspect-video w-full max-w-xs rounded-xl overflow-hidden border border-white/10">
-                        <img 
-                          src={featuredGameForm.thumbnail} 
-                          alt="Thumbnail Preview"
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Field 9: Category & Version */}
+                  {/* Field 8: Category & Version */}
                   <div className="space-y-2">
                     <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
                       Category
@@ -2576,49 +2528,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       value={featuredGameForm.version || '1.0'}
                       onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, version: e.target.value })}
                       placeholder="e.g. 1.0 / 2.1.4"
-                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
-                    />
-                  </div>
-
-                  {/* Field 10: Tags */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
-                      Tags (comma separated)
-                    </label>
-                    <input
-                      type="text"
-                      value={typeof featuredGameForm.tags === 'string' ? featuredGameForm.tags : Array.isArray(featuredGameForm.tags) ? featuredGameForm.tags.join(', ') : ''}
-                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, tags: e.target.value })}
-                      placeholder="e.g. Cyberpunk, Action, Unreal Engine 5, Raytracing"
-                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
-                    />
-                  </div>
-
-                  {/* Field 11: Short Description */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
-                      Short Description (Summary)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={featuredGameForm.shortDescription || ''}
-                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, shortDescription: e.target.value })}
-                      placeholder="Concise 1-2 sentence overview for cards and sharing..."
-                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
-                    />
-                  </div>
-
-                  {/* Field 12: Full Description */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="block text-xs font-display font-bold text-gray-300 uppercase tracking-wider">
-                      Full Description & Specs
-                    </label>
-                    <textarea
-                      rows={5}
-                      value={featuredGameForm.description || ''}
-                      onChange={(e) => setFeaturedGameForm({ ...featuredGameForm, description: e.target.value })}
-                      placeholder="Detailed game specifications, patch notes, prompt usage instructions, and features..."
-                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl focus:border-cyber-cyan focus:outline-none text-xs text-white"
+                      className="w-full px-4 py-3 bg-black/60 border border-cyber-cyan focus:outline-none text-xs text-white"
                     />
                   </div>
                 </div>
@@ -2660,8 +2570,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       title: '',
                       slug: '',
                       thumbnail: '',
-                      banner: '',
-                      cover: '',
                       buttonText: '',
                       buttonLink: '',
                       description: '',
@@ -2672,8 +2580,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       publishDate: new Date().toISOString().split('T')[0],
                       status: 'published',
                       featured: false,
-                      seoTitle: '',
-                      seoDescription: '',
                       extraLink: '',
                       viewsCount: 0
                     });
@@ -2854,37 +2760,15 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                     <span>Visual Assets Configuration (No Upload - URL links only)</span>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-[9px] uppercase font-mono text-gray-400 mb-1">Index Card Thumbnail Image URL</label>
-                      <input
-                        type="url"
-                        value={postForm.thumbnail}
-                        onChange={(e) => setPostForm({ ...postForm, thumbnail: e.target.value })}
-                        placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyber-purple"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-mono text-gray-400 mb-1">Full Header Banner Image URL</label>
-                      <input
-                        type="url"
-                        value={postForm.banner}
-                        onChange={(e) => setPostForm({ ...postForm, banner: e.target.value })}
-                        placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyber-purple"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-mono text-gray-400 mb-1">Cover Display Image URL</label>
-                      <input
-                        type="url"
-                        value={postForm.cover}
-                        onChange={(e) => setPostForm({ ...postForm, cover: e.target.value })}
-                        placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyber-purple"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-gray-400 mb-1 font-bold uppercase">Thumbnail / Cover Image URL (Single Image Only)</label>
+                    <input
+                      type="url"
+                      value={postForm.thumbnail}
+                      onChange={(e) => setPostForm({ ...postForm, thumbnail: e.target.value })}
+                      placeholder="https://images.unsplash.com/photo-..."
+                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyber-cyan"
+                    />
                   </div>
                 </div>
 
@@ -3000,33 +2884,6 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       <option value="published">Visible (Published)</option>
                       <option value="draft">Invisible (Draft)</option>
                     </select>
-                  </div>
-                </div>
-
-                {/* SEARCH LAYOUT Meta Settings */}
-                <div className="p-5 bg-[#0d0d12] border border-white/5 rounded-2xl space-y-4">
-                  <p className="text-xs font-display font-black text-white uppercase tracking-wider">SEO EXCLUSIVE METADATA OVERRIDES</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-mono text-gray-400 mb-1">SEO Title Override</label>
-                      <input
-                        type="text"
-                        value={postForm.seoTitle || ''}
-                        onChange={(e) => setPostForm({ ...postForm, seoTitle: e.target.value })}
-                        placeholder="Google Search title headline..."
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-mono text-gray-400 mb-1">SEO Description Teaser</label>
-                      <input
-                        type="text"
-                        value={postForm.seoDescription || ''}
-                        onChange={(e) => setPostForm({ ...postForm, seoDescription: e.target.value })}
-                        placeholder="Search engine brief layout overview..."
-                        className="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-xs text-white"
-                      />
-                    </div>
                   </div>
                 </div>
 

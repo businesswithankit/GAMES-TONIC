@@ -3,9 +3,7 @@ export interface ContentPost {
   type: 'games' | 'blogs' | 'mods' | 'updates' | 'announcements' | 'events' | 'videos' | string;
   title: string;
   slug: string;
-  thumbnail: string; // URL only
-  banner: string; // URL only
-  cover?: string; // Cover URL only
+  thumbnail: string; // URL only (Thumbnail / Cover Image URL - Single Image Only)
   buttonText?: string; // Button Text
   buttonLink?: string; // Button Link
   linkEnabled?: boolean; // Enable / Disable Link
@@ -17,8 +15,6 @@ export interface ContentPost {
   publishDate: string;
   status: 'draft' | 'published';
   featured?: boolean;
-  seoTitle?: string;
-  seoDescription?: string;
   extraLink?: string; // e.g. mod download link, game steam link, registration link
   viewsCount?: number;
   developerName?: string;
@@ -115,15 +111,11 @@ export interface FeaturedGameItem {
   developerWebsite: string;
   gameLink: string;
   promptLink?: string;
-  imageLink: string;
-  thumbnail?: string;
-  shortDescription?: string;
-  description?: string;
+  imageLink: string; // Single Image Link
   category?: string;
   version?: string;
   publishDate?: string;
   updatedDate?: string;
-  tags?: string[] | string;
   status?: 'published' | 'draft';
   position?: number;
 }

@@ -9,7 +9,9 @@ import {
   Share2,
   Globe,
   Sparkles,
-  Video
+  Video,
+  Info,
+  ShieldCheck
 } from 'lucide-react';
 import { ContentPost, Advertisement, AdSenseUnit } from '../types';
 import AdPlacement from './AdPlacement';
@@ -45,7 +47,7 @@ export default function ContentDetails({
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = window.location.href;
+  const shareUrl = `${window.location.origin}/#card-${post.id}`;
   const shareTitle = post.title;
 
   const handleShareClick = async () => {
@@ -58,7 +60,7 @@ export default function ContentDetails({
         });
         return;
       } catch (err) {
-        // Fallback to modal if user cancels or error occurs
+        // Fallback to clipboard/modal
       }
     }
     setShowShareModal(true);
@@ -78,6 +80,12 @@ export default function ContentDetails({
     }
   };
 
+  const type = post.type?.toLowerCase().trim() || 'content';
+  const isGame = type === 'games';
+  const isMod = type === 'mods';
+  const isUpcoming = type === 'upcoming';
+  const isContent = !isGame && !isMod && !isUpcoming;
+
   // Safe tag extraction
   const tagList = Array.isArray(post.tags)
     ? post.tags
@@ -85,111 +93,110 @@ export default function ContentDetails({
     ? (post.tags as string).split(',').map((t) => t.trim()).filter(Boolean)
     : [];
 
-  // Determine cover / banner image
-  const heroImage = post.cover || post.banner || post.thumbnail || post.imageLink;
+  // Determine single image used everywhere (no second or third image properties)
+  const heroImage = post.thumbnail || post.imageLink;
 
-  // Resolve distinct links for ordered action buttons
-  const usedUrls = new Set<string>();
-  const usedLabels = new Set<string>();
-  const actionButtons: ActionButtonConfig[] = [];
-
+  // URLs resolution for Action Buttons
   const isValidUrl = (url?: string): boolean => {
     if (!url || typeof url !== 'string') return false;
     const trimmed = url.trim();
     return trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('www.');
   };
 
-  // 1. Watch Now
   const watchUrl = (
-    (post.type === 'videos' && post.buttonLink ? post.buttonLink : undefined) ||
+    (type === 'videos' && post.buttonLink ? post.buttonLink : undefined) ||
     post.channelUrl ||
     (post.buttonText?.toLowerCase().includes('watch') ? post.buttonLink : undefined) ||
     (post.videoEmbed && isValidUrl(post.videoEmbed) ? post.videoEmbed : undefined)
   )?.trim();
 
-  if (watchUrl && isValidUrl(watchUrl)) {
-    actionButtons.push({
-      key: 'watch',
-      label: 'WATCH NOW',
-      url: watchUrl,
-      icon: <Video className="w-4 h-4 shrink-0" />,
-      variant: 'magenta'
-    });
-    usedUrls.add(watchUrl);
-    usedLabels.add('WATCH NOW');
-  }
-
-  // 2. Download
   const downloadUrl = (
     post.downloadLink ||
     post.extraLink ||
-    (post.type === 'mods' && post.buttonLink ? post.buttonLink : undefined) ||
+    (type === 'mods' && post.buttonLink ? post.buttonLink : undefined) ||
     (post.buttonText?.toLowerCase().includes('download') ? post.buttonLink : undefined)
   )?.trim();
 
-  if (downloadUrl && isValidUrl(downloadUrl) && !usedUrls.has(downloadUrl)) {
-    actionButtons.push({
-      key: 'download',
-      label: 'DOWNLOAD',
-      url: downloadUrl,
-      icon: <Download className="w-4 h-4 shrink-0" />,
-      variant: 'green'
-    });
-    usedUrls.add(downloadUrl);
-    usedLabels.add('DOWNLOAD');
-  }
-
-  // 3. Get Prompt (Never duplicate Get Prompt button)
   const promptUrl = (
     post.promptLink ||
     (post.buttonText?.toLowerCase().includes('prompt') ? post.buttonLink : undefined)
   )?.trim();
 
-  if (
-    promptUrl &&
-    isValidUrl(promptUrl) &&
-    !usedUrls.has(promptUrl) &&
-    !usedLabels.has('GET PROMPT')
-  ) {
-    actionButtons.push({
-      key: 'prompt',
-      label: 'GET PROMPT',
-      url: promptUrl,
-      icon: <Sparkles className="w-4 h-4 shrink-0" />,
-      variant: 'gradient'
-    });
-    usedUrls.add(promptUrl);
-    usedLabels.add('GET PROMPT');
-  }
-
-  // 4. Official Website
   const websiteUrl = (
     post.websiteLink ||
     post.officialWebsite ||
     post.gameLink ||
-    (post.type === 'games' && post.buttonLink ? post.buttonLink : undefined) ||
+    (type === 'games' && post.buttonLink ? post.buttonLink : undefined) ||
     post.developerWebsite ||
     post.buttonLink
   )?.trim();
 
-  if (websiteUrl && isValidUrl(websiteUrl) && !usedUrls.has(websiteUrl)) {
-    actionButtons.push({
-      key: 'website',
-      label: 'OFFICIAL WEBSITE',
-      url: websiteUrl,
-      icon: <Globe className="w-4 h-4 shrink-0" />,
-      variant: 'cyan'
-    });
-    usedUrls.add(websiteUrl);
-    usedLabels.add('OFFICIAL WEBSITE');
-  }
-
-  // 5. Official Source (Replace URL text with buttons only, never display raw links)
   const sourceUrl = (
     (post.source && isValidUrl(post.source) ? post.source : undefined) ||
     (post.developerWebsite && post.developerWebsite !== websiteUrl ? post.developerWebsite : undefined)
   )?.trim();
 
+  // Primary Action Button styling determination (Gradient goes to the first active CTA)
+  const hasPrompt = isValidUrl(promptUrl);
+  const hasDownload = isValidUrl(downloadUrl);
+  const hasWatch = isValidUrl(watchUrl);
+  const hasWebsite = isValidUrl(websiteUrl);
+
+  const actionButtons: ActionButtonConfig[] = [];
+  const usedUrls = new Set<string>();
+
+  // 1. WATCH NOW
+  if (hasWatch && isValidUrl(watchUrl) && !usedUrls.has(watchUrl!)) {
+    const isPrimary = !hasDownload && !hasPrompt;
+    actionButtons.push({
+      key: 'watch',
+      label: 'WATCH NOW',
+      url: watchUrl!,
+      icon: <Video className="w-4 h-4 shrink-0" />,
+      variant: isPrimary ? 'gradient' : 'magenta'
+    });
+    usedUrls.add(watchUrl!);
+  }
+
+  // 2. DOWNLOAD
+  if (hasDownload && isValidUrl(downloadUrl) && !usedUrls.has(downloadUrl!)) {
+    const isPrimary = !hasPrompt;
+    actionButtons.push({
+      key: 'download',
+      label: 'DOWNLOAD',
+      url: downloadUrl!,
+      icon: <Download className="w-4 h-4 shrink-0" />,
+      variant: isPrimary ? 'gradient' : 'green'
+    });
+    usedUrls.add(downloadUrl!);
+  }
+
+  // 3. GET PROMPT (Always receives gradient if present)
+  if (hasPrompt && isValidUrl(promptUrl) && !usedUrls.has(promptUrl!)) {
+    actionButtons.push({
+      key: 'prompt',
+      label: 'GET PROMPT',
+      url: promptUrl!,
+      icon: <Sparkles className="w-4 h-4 shrink-0" />,
+      variant: 'gradient'
+    });
+    usedUrls.add(promptUrl!);
+  }
+
+  // 4. OFFICIAL WEBSITE
+  if (hasWebsite && isValidUrl(websiteUrl) && !usedUrls.has(websiteUrl!)) {
+    const isPrimary = !hasPrompt && !hasDownload && !hasWatch;
+    actionButtons.push({
+      key: 'website',
+      label: 'OFFICIAL WEBSITE',
+      url: websiteUrl!,
+      icon: <Globe className="w-4 h-4 shrink-0" />,
+      variant: isPrimary ? 'gradient' : 'cyan'
+    });
+    usedUrls.add(websiteUrl!);
+  }
+
+  // 5. OFFICIAL SOURCE
   if (sourceUrl && isValidUrl(sourceUrl) && !usedUrls.has(sourceUrl)) {
     actionButtons.push({
       key: 'source',
@@ -199,31 +206,38 @@ export default function ContentDetails({
       variant: 'neutral'
     });
     usedUrls.add(sourceUrl);
-    usedLabels.add('OFFICIAL SOURCE');
   }
 
-  // Determine Developer / Author (Hide automatically if empty)
-  const devName = (
+  // Creator identity label resolve (strict professional tags)
+  const getCreatorLabel = () => {
+    if (isGame) return 'Developer';
+    if (isMod) return 'Content Creator';
+    if (isUpcoming) return 'Published By';
+    return 'Author'; // standard content type
+  };
+
+  const creatorName = (
     post.developerName ||
-    (post.author && post.author !== 'GAMES TONIC' ? post.author : '')
+    post.author
   )?.trim();
 
-  // Full Description vs Short Description
+  const finalCreatorName = creatorName === 'Admin' || !creatorName ? 'GAMES TONIC' : creatorName;
+
   const fullDesc = (post.description || post.content)?.trim();
   const shortDesc = post.shortDescription?.trim();
-  const showFullDesc = fullDesc && fullDesc !== shortDesc;
+  const showFullDesc = fullDesc && fullDesc !== '';
 
   return (
     <div
-      className="fixed inset-0 z-[9999] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in flex items-center justify-center p-3 sm:p-6"
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-black/85 backdrop-blur-md animate-fade-in flex items-center justify-center p-3 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-4xl max-h-[90vh] flex flex-col glass-panel-neon border border-cyber-cyan/30 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,240,255,0.2)] bg-[#0c0c16] font-sans my-auto"
+        className="relative w-full max-w-4xl max-h-[90vh] flex flex-col glass-panel-neon border border-cyber-cyan/30 rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(0,240,255,0.2)] bg-[#07070d] font-sans my-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Sticky Header with Close Button: 1. Category Badge, 2. Optional Featured Badge */}
-        <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-[#0c0c16]/95 backdrop-blur-md border-b border-white/10">
+        {/* Sticky Header with Badges */}
+        <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-[#07070d]/95 backdrop-blur-md border-b border-white/5">
           <div className="flex items-center gap-2.5 overflow-hidden pr-4">
             {/* 1. Category Badge */}
             {post.category && post.category.trim() !== '' && (
@@ -243,7 +257,7 @@ export default function ContentDetails({
                 ★ FEATURED
               </span>
             )}
-            <h2 className="text-xs sm:text-sm font-display font-bold text-gray-300 truncate uppercase">
+            <h2 className="text-xs sm:text-sm font-display font-bold text-gray-400 truncate uppercase">
               {post.title}
             </h2>
           </div>
@@ -259,20 +273,20 @@ export default function ContentDetails({
 
         {/* Scrollable Popup Content Body */}
         <div className="overflow-y-auto max-h-[calc(90vh-72px)] p-6 md:p-8 space-y-6">
-          {/* 3. Image (Cover / Banner Image or Video embed if present) */}
+          {/* 3. Image (strictly one single image used everywhere) */}
           {heroImage && (
-            <div className="relative w-full aspect-video max-h-[420px] rounded-2xl overflow-hidden bg-black/60 border border-white/10 shadow-lg">
+            <div className="relative w-full aspect-video max-h-[400px] rounded-2xl overflow-hidden bg-black/60 border border-white/10 shadow-lg">
               <img
                 src={heroImage}
                 alt={post.title}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c16] via-transparent to-black/30" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#07070d] via-transparent to-black/20" />
             </div>
           )}
 
-          {/* Video Embed if present without cover image */}
+          {/* Render embedded video trailer instead if present and no main image (upcoming/videos) */}
           {!heroImage && (post.embedCode || post.videoEmbed) && (
             <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/80 shadow-lg">
               {post.embedCode ? (
@@ -292,14 +306,14 @@ export default function ContentDetails({
           )}
 
           {/* 4. Title & 5. Short Description */}
-          <div className="space-y-3">
+          <div className="space-y-3 text-left">
             {post.title && post.title.trim() !== '' && (
               <h1 className="text-2xl sm:text-4xl font-display font-black text-white tracking-wide uppercase">
                 {post.title}
               </h1>
             )}
             {shortDesc && shortDesc !== '' && (
-              <p className="text-base sm:text-lg text-gray-200 font-sans leading-relaxed">
+              <p className="text-sm sm:text-base text-gray-300 font-sans leading-relaxed border-l-2 border-cyber-cyan/30 pl-4">
                 {shortDesc}
               </p>
             )}
@@ -307,8 +321,21 @@ export default function ContentDetails({
 
           {/* 6. Full Description */}
           {showFullDesc && (
-            <div className="p-5 sm:p-6 bg-black/40 border border-white/10 rounded-2xl text-gray-300 font-sans text-sm sm:text-base leading-relaxed whitespace-pre-line">
-              {fullDesc}
+            <div className="text-left space-y-2">
+              <h3 className="text-xs font-display font-bold text-cyber-cyan uppercase tracking-wider">About Content</h3>
+              <div className="p-5 sm:p-6 bg-black/40 border border-white/5 rounded-2xl text-gray-300 font-sans text-sm sm:text-base leading-relaxed whitespace-pre-line text-left">
+                {fullDesc}
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic Sections by Type */}
+          {isMod && post.credits && (
+            <div className="text-left space-y-2">
+              <h3 className="text-xs font-display font-bold text-cyber-purple uppercase tracking-wider">Mod Requirements & Credits</h3>
+              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl text-xs text-gray-400 font-mono leading-relaxed whitespace-pre-line">
+                {post.credits}
+              </div>
             </div>
           )}
 
@@ -318,65 +345,119 @@ export default function ContentDetails({
             <AdPlacement position="blog_top" ads={ads} />
           </div>
 
-          {/* 7. Developer, 8. Publish Date, 9. Last Updated (Hide automatically if empty, Never show total views or view counter) */}
-          {(devName || (post.publishDate && post.publishDate.trim() !== '') || (post.updatedDate && post.updatedDate.trim() !== '')) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-              {/* 7. Developer */}
-              {devName && (
-                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                    <User className="w-4 h-4 text-cyber-cyan" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] text-gray-400 font-mono uppercase block mb-0.5">
-                      Developer
-                    </span>
-                    <div className="text-xs text-gray-200 truncate font-semibold uppercase">
-                      {devName}
-                    </div>
+          {/* 7. Creator Info, 8. Publish Date, 9. Last Updated (strictly professional grids, hide empty) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2 text-left">
+            {/* Creator / Publisher */}
+            {finalCreatorName && (
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                  <User className="w-4 h-4 text-cyber-cyan" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
+                    {getCreatorLabel()}
+                  </span>
+                  <div className="text-xs text-gray-200 truncate font-semibold uppercase">
+                    {finalCreatorName}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* 8. Publish Date */}
-              {post.publishDate && post.publishDate.trim() !== '' && (
-                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] text-gray-400 font-mono uppercase block mb-0.5">
-                      Publish Date
-                    </span>
-                    <div className="text-xs text-gray-200 truncate font-mono">
-                      {post.publishDate}
-                    </div>
+            {/* Email (Games/Featured) */}
+            {isGame && post.developerEmail && (
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                  <ShieldCheck className="w-4 h-4 text-cyber-purple" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
+                    Support Email
+                  </span>
+                  <div className="text-xs text-gray-200 truncate font-mono">
+                    {post.developerEmail}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* 9. Last Updated */}
-              {post.updatedDate && post.updatedDate.trim() !== '' && (
-                <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
-                    <CalendarDays className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] text-gray-400 font-mono uppercase block mb-0.5">
-                      Last Updated
-                    </span>
-                    <div className="text-xs text-gray-200 truncate font-mono">
-                      {post.updatedDate}
-                    </div>
+            {/* Version */}
+            {(isGame || isMod) && post.version && (
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                  <Info className="w-4 h-4 text-cyber-magenta" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
+                    Version Index
+                  </span>
+                  <div className="text-xs text-gray-200 truncate font-mono font-bold">
+                    v{post.version}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* 8. Publish Date */}
+            {post.publishDate && post.publishDate.trim() !== '' && (
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
+                    {isUpcoming ? 'Release Target' : 'Published Date'}
+                  </span>
+                  <div className="text-xs text-gray-200 truncate font-mono">
+                    {post.publishDate}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 9. Last Updated */}
+            {post.updatedDate && post.updatedDate.trim() !== '' && (
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-black/40 border border-white/5 shrink-0">
+                  <CalendarDays className="w-4 h-4 text-gray-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] text-gray-500 font-mono uppercase block mb-0.5">
+                    Last Updated
+                  </span>
+                  <div className="text-xs text-gray-200 truncate font-mono">
+                    {post.updatedDate}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Embedded Trailer Video for Upcoming or Guides (if main image is rendered) */}
+          {heroImage && (post.embedCode || post.videoEmbed) && (
+            <div className="text-left space-y-2 pt-2">
+              <h3 className="text-xs font-display font-bold text-cyber-magenta uppercase tracking-wider">Video Experience</h3>
+              <div className="w-full aspect-video rounded-2xl overflow-hidden border border-white/5 bg-black/80 shadow-md">
+                {post.embedCode ? (
+                  <div
+                    className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0 [&_iframe]:aspect-video"
+                    dangerouslySetInnerHTML={{ __html: post.embedCode }}
+                  />
+                ) : (
+                  <iframe
+                    src={post.videoEmbed}
+                    className="w-full h-full border-0"
+                    allowFullScreen
+                    title={`${post.title} Video Preview`}
+                  />
+                )}
+              </div>
             </div>
           )}
 
-          {/* 10. Tags */}
+          {/* 10. Tags list */}
           {tagList.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 pt-2">
+            <div className="flex flex-wrap items-center gap-2 pt-2 text-left">
               <Tag className="w-4 h-4 text-cyber-cyan mr-1 shrink-0" />
               {tagList.map((t, idx) => (
                 <span
@@ -393,19 +474,19 @@ export default function ContentDetails({
             </div>
           )}
 
-          {/* 11. Action Buttons & 12. Share Button (Strict order: Watch Now, Download, Get Prompt, Official Website, Official Source, Share Button) */}
-          <div className="pt-6 border-t border-white/10 flex flex-wrap items-center gap-3">
+          {/* 11. Action Buttons & 12. Share Button (Strict order & visual prioritization) */}
+          <div className="pt-6 border-t border-white/5 flex flex-wrap items-center gap-3">
             {/* 11. Action Buttons */}
             {actionButtons.map((btn) => {
               let btnClass = "px-5 py-3 rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 border ";
-              if (btn.variant === 'magenta') {
-                btnClass += "bg-cyber-magenta/20 hover:bg-cyber-magenta/30 border-cyber-magenta/40 text-cyber-magenta hover:shadow-[0_0_15px_rgba(255,0,127,0.3)]";
+              if (btn.variant === 'gradient') {
+                btnClass += "bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-110 hover:scale-[1.01] active:scale-95 text-black font-black border-transparent shadow-[0_0_15px_rgba(0,240,255,0.3)]";
+              } else if (btn.variant === 'magenta') {
+                btnClass += "bg-cyber-magenta/20 hover:bg-cyber-magenta/35 border-cyber-magenta/40 text-cyber-magenta hover:shadow-[0_0_15px_rgba(255,0,127,0.25)]";
               } else if (btn.variant === 'green') {
-                btnClass += "bg-green-500/20 hover:bg-green-500/30 border-green-500/40 text-green-400 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)]";
-              } else if (btn.variant === 'gradient') {
-                btnClass += "bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-125 text-black font-black border-transparent shadow-[0_0_15px_rgba(0,240,255,0.3)]";
+                btnClass += "bg-green-500/20 hover:bg-green-500/35 border-green-500/40 text-green-400 hover:shadow-[0_0_15px_rgba(34,197,94,0.25)]";
               } else if (btn.variant === 'cyan') {
-                btnClass += "bg-white/10 hover:bg-cyber-cyan/20 border-white/20 hover:border-cyber-cyan text-white hover:text-cyber-cyan hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]";
+                btnClass += "bg-white/10 hover:bg-cyber-cyan/20 border-white/15 hover:border-cyber-cyan text-white hover:text-cyber-cyan hover:shadow-[0_0_15px_rgba(0,240,255,0.15)]";
               } else {
                 btnClass += "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/30 text-gray-300 hover:text-white";
               }
@@ -425,7 +506,7 @@ export default function ContentDetails({
             {/* 12. Share Button (Identical sizing, padding, and font size as action buttons) */}
             <button
               onClick={handleShareClick}
-              className="ml-auto px-5 py-3 bg-black/60 hover:bg-cyber-cyan/15 border border-white/15 hover:border-cyber-cyan text-gray-300 hover:text-cyber-cyan font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="ml-auto px-5 py-3 bg-black/60 hover:bg-cyber-cyan/15 border border-white/10 hover:border-cyber-cyan text-gray-300 hover:text-cyber-cyan font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <Share2 className="w-4 h-4 shrink-0" />
               <span>SHARE</span>
@@ -440,7 +521,7 @@ export default function ContentDetails({
             onClick={() => setShowShareModal(false)}
           >
             <div
-              className="w-full max-w-md bg-[#0c0c16] border border-cyber-cyan/40 rounded-2xl p-6 shadow-2xl relative"
+              className="w-full max-w-md bg-[#07070d] border border-cyber-cyan/40 rounded-2xl p-6 shadow-2xl relative"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -449,7 +530,7 @@ export default function ContentDetails({
               >
                 ✕
               </button>
-              <h3 className="text-lg font-display font-bold text-white uppercase tracking-wider mb-4">
+              <h3 className="text-lg font-display font-bold text-white uppercase tracking-wider mb-4 text-left">
                 Share Content
               </h3>
               <div className="flex items-center gap-2 bg-black/60 border border-white/10 rounded-xl p-2.5">
@@ -473,4 +554,3 @@ export default function ContentDetails({
     </div>
   );
 }
-
