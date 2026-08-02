@@ -15,7 +15,6 @@ interface MaintenancePageProps {
     x?: string;
   };
   onRefresh: () => Promise<void>;
-  onAdminLoginClick?: () => void;
 }
 
 export default function MaintenancePage({
@@ -24,8 +23,7 @@ export default function MaintenancePage({
   statusLine,
   showSocialIcons = true,
   socialLinks = {},
-  onRefresh,
-  onAdminLoginClick
+  onRefresh
 }: MaintenancePageProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [justChecked, setJustChecked] = useState(false);
@@ -161,15 +159,7 @@ export default function MaintenancePage({
           </span>
         </div>
 
-        {onAdminLoginClick && (
-          <button
-            onClick={onAdminLoginClick}
-            className="px-4 py-1.5 border border-white/10 hover:border-cyber-cyan/50 bg-black/40 hover:bg-cyber-cyan/10 text-xs text-gray-400 hover:text-cyber-cyan rounded-lg transition-all tracking-wider font-display font-bold cursor-pointer"
-            aria-label="Admin Authorized Sign In"
-          >
-            ADMIN ACCESS
-          </button>
-        )}
+
       </div>
 
       {/* MIDDLE: Central Maintenance Dialog (Pure Glassmorphism + Accent Neon Box) */}

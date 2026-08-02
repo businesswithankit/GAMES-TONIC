@@ -94,7 +94,7 @@ export default function ContentDetails({
   const fullDesc = (post.description || post.content)?.trim();
   const shortDesc = post.shortDescription?.trim();
 
-  const showCustomAdminBtn =
+  const hasCustomAdminBtn =
     type === 'games' &&
     post.buttonText &&
     post.buttonText.trim() !== '' &&
@@ -106,23 +106,26 @@ export default function ContentDetails({
   // BUTTONS CONFIGURATION
   // ----------------------------------------------------
   const actionButtons: { key: string; label: string; url: string; icon: React.ReactNode; variant: string }[] = [];
+  const usedUrls = new Set<string>();
 
   if (isFeaturedGamePopup) {
     // Featured Game Popup Buttons (Strict order & priority)
     // 1st (Primary CTA): GET PROMPT (Gradient button, Only if Prompt URL exists)
     if (post.promptLink && isValidUrl(post.promptLink)) {
+      const trimmedPrompt = post.promptLink.trim();
       actionButtons.push({
         key: 'prompt',
         label: 'GET PROMPT',
-        url: post.promptLink,
+        url: trimmedPrompt,
         icon: <Sparkles className="w-4 h-4 shrink-0" />,
         variant: 'gradient'
       });
+      usedUrls.add(trimmedPrompt);
     }
 
     // 2nd (Secondary CTA): PLAY NOW (If Download/Game URL exists)
-    const targetDownloadUrl = post.websiteLink || post.gameLink;
-    if (targetDownloadUrl && isValidUrl(targetDownloadUrl)) {
+    const targetDownloadUrl = (post.websiteLink || post.gameLink)?.trim();
+    if (targetDownloadUrl && isValidUrl(targetDownloadUrl) && !usedUrls.has(targetDownloadUrl)) {
       actionButtons.push({
         key: 'download',
         label: 'PLAY NOW',
@@ -130,11 +133,12 @@ export default function ContentDetails({
         icon: <Download className="w-4 h-4 shrink-0" />,
         variant: 'green'
       });
+      usedUrls.add(targetDownloadUrl);
     }
 
     // 4th: OFFICIAL SOURCE (Optional, e.g. source URL / officialWebsite, check if distinct)
-    const targetSource = post.source || post.officialWebsite;
-    if (targetSource && isValidUrl(targetSource) && targetSource !== post.developerWebsite && targetSource !== targetDownloadUrl) {
+    const targetSource = (post.source || post.officialWebsite)?.trim();
+    if (targetSource && isValidUrl(targetSource) && targetSource !== post.developerWebsite && targetSource !== targetDownloadUrl && !usedUrls.has(targetSource)) {
       actionButtons.push({
         key: 'source',
         label: 'OFFICIAL SOURCE',
@@ -142,6 +146,7 @@ export default function ContentDetails({
         icon: <ExternalLink className="w-4 h-4 shrink-0" />,
         variant: 'neutral'
       });
+      usedUrls.add(targetSource);
     }
   } else {
     // Standard Content Popup Buttons (Watch, Download, Prompt, Website, Source)
@@ -182,8 +187,6 @@ export default function ContentDetails({
     const hasDownload = isValidUrl(downloadUrl);
     const hasWatch = isValidUrl(watchUrl);
     const hasWebsite = isValidUrl(websiteUrl);
-
-    const usedUrls = new Set<string>();
 
     if (hasWatch && !usedUrls.has(watchUrl!)) {
       const isPrimary = !hasDownload && !hasPrompt;
@@ -243,6 +246,12 @@ export default function ContentDetails({
       usedUrls.add(sourceUrl);
     }
   }
+
+  // Deduplicate custom admin button: do not render if its link is already in usedUrls or if it is a featured game popup
+  const showCustomAdminBtn = hasCustomAdminBtn && 
+    post.buttonLink && 
+    !isFeaturedGamePopup && 
+    !usedUrls.has(post.buttonLink.trim());
 
   return (
     <div

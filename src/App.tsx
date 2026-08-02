@@ -949,10 +949,6 @@ export default function App() {
         showSocialIcons={siteSettings.maintenance?.showSocialIcons !== false}
         socialLinks={siteSettings.socialLinks}
         onRefresh={handleRecheckMaintenance}
-        onAdminLoginClick={() => {
-          setAdminOpen(true);
-          setActivePage('admin');
-        }}
       />
     );
   }
