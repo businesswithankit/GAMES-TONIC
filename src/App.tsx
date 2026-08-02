@@ -6,11 +6,13 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { ContentPost, SiteSettings, ActivePage, VideoItem, HomeSection, FooterColumn, CustomSocialLink, Advertisement, AdSenseUnit, FeaturedGameItem } from './types';
-import { db } from './lib/firebase';
+import { db, auth } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { ref, onValue, push, set, runTransaction } from 'firebase/database';
 import BackgroundEffect from './components/BackgroundEffect';
 import Navbar from './components/Navbar';
 import AdminPanel from './components/AdminPanel';
+import MaintenancePage from './components/MaintenancePage';
 import ContentDetails from './components/ContentDetails';
 import { DynamicPageRenderer } from './components/LegalPages';
 import AdPlacement, { UniversalAdRenderer } from './components/AdPlacement';
@@ -269,6 +271,13 @@ Contact operations@gamestonicofficial.com outlining the copyrighted files, regis
     copyright: "© GAMES TONIC RESERVED INTEL. ALL MODIFICATION EXECUTABLES OWNED BY THEIR ORIGINAL AUTHOR DIRECTORIES.",
     statusText: "UPLINK STATUS: SECURE CONNECTION ACTIVE",
     statusColor: "#00f0ff"
+  },
+  maintenance: {
+    enabled: false,
+    title: "Games Tonic is Currently Under Maintenance",
+    description: "We're upgrading Games Tonic with new features, performance improvements, and a better gaming experience. We'll be back shortly.",
+    status: "Optimizing platform...",
+    showSocialIcons: true
   }
 };
 
@@ -277,6 +286,50 @@ export default function App() {
   const [activePage, setActivePage] = useState<ActivePage>('home');
   const [adminOpen, setAdminOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<ContentPost | null>(null);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  // Monitor Auth sessions in real-time
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAdmin(!!user);
+      setAuthChecking(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleRecheckMaintenance = async () => {
+    const settingsRef = ref(db, 'settings/maintenance');
+    return new Promise<void>((resolve, reject) => {
+      onValue(settingsRef, (snapshot) => {
+        const val = snapshot.val();
+        if (snapshot.exists() && val) {
+          setSiteSettings(prev => ({
+            ...prev,
+            maintenance: {
+              enabled: !!val.enabled,
+              title: val.title || '',
+              description: val.description || '',
+              status: val.status || '',
+              showSocialIcons: val.showSocialIcons !== false
+            }
+          }));
+        }
+        resolve();
+      }, (err) => {
+        reject(err);
+      }, { onlyOnce: true });
+    });
+  };
+
+  // Automatic status scan fallback every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleRecheckMaintenance().catch(err => console.error("Auto maintenance check failed:", err));
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Triple click footer to open admin login panel
   const footerClickCountRef = useRef(0);
@@ -525,6 +578,7 @@ export default function App() {
           footerLinks: { ...DEFAULT_SITE_SETTINGS.footerLinks, ...(data.footerLinks || {}) },
           buttons: { ...DEFAULT_SITE_SETTINGS.buttons, ...(data.buttons || {}) },
           contactPage: { ...DEFAULT_SITE_SETTINGS.contactPage, ...(data.contactPage || {}) },
+          maintenance: { ...DEFAULT_SITE_SETTINGS.maintenance, ...(data.maintenance || {}) },
           menus: parseArray(data.menus, DEFAULT_SITE_SETTINGS.menus || []),
           categories: parseArray(data.categories, DEFAULT_SITE_SETTINGS.categories),
           tags: parseArray(data.tags, DEFAULT_SITE_SETTINGS.tags),
@@ -863,6 +917,46 @@ export default function App() {
     }
   };
 
+  const isMaintenanceActive = !!siteSettings.maintenance?.enabled;
+
+  if (isMaintenanceActive && !isAdmin) {
+    // If trying to authenticate as Admin, bypass the blocking page to show login screen
+    if (adminOpen || activePage === 'admin') {
+      return (
+        <div className="relative min-h-screen text-gray-100 bg-[#07070c]">
+          {/* Dynamic Visual Background effect */}
+          <BackgroundEffect effectType={siteSettings.hero?.backgroundEffect || 'particles'} />
+          <AdminPanel
+            siteSettings={siteSettings}
+            setSiteSettings={setSiteSettings}
+            ads={ads}
+            onClose={() => {
+              setAdminOpen(false);
+              setActivePage('home');
+              window.history.pushState({}, '', '/');
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Otherwise redirect visitor to Maintenance Page
+    return (
+      <MaintenancePage
+        title={siteSettings.maintenance?.title || 'Games Tonic is Currently Under Maintenance'}
+        description={siteSettings.maintenance?.description || "We're upgrading Games Tonic with new features, performance improvements, and a better gaming experience. We'll be back shortly."}
+        statusLine={siteSettings.maintenance?.status}
+        showSocialIcons={siteSettings.maintenance?.showSocialIcons !== false}
+        socialLinks={siteSettings.socialLinks}
+        onRefresh={handleRecheckMaintenance}
+        onAdminLoginClick={() => {
+          setAdminOpen(true);
+          setActivePage('admin');
+        }}
+      />
+    );
+  }
+
   if (adminOpen || activePage === 'admin') {
     return (
       <div className="relative min-h-screen text-gray-100 bg-[#07070c]">
@@ -1028,7 +1122,7 @@ export default function App() {
 
                           {gamePosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No content available. Create your first content from the Admin Panel.
+                              No content available.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1080,7 +1174,7 @@ export default function App() {
 
                           {featuredGames.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No content available. Create your first content from the Admin Panel.
+                              No content available.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1164,7 +1258,7 @@ export default function App() {
 
                           {modsPosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No content available. Create your first content from the Admin Panel.
+                              No content available.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1215,7 +1309,7 @@ export default function App() {
 
                             {videos.length === 0 ? (
                               <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                                No content available. Create your first content from the Admin Panel.
+                                No content available.
                               </div>
                             ) : (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1309,7 +1403,7 @@ export default function App() {
 
                           {upcomingPosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No content available. Create your first content from the Admin Panel.
+                              No content available.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1354,7 +1448,7 @@ export default function App() {
 
                           {publicPosts.length === 0 ? (
                             <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center text-gray-500 font-sans text-sm">
-                              No content available. Create your first content from the Admin Panel.
+                              No content available.
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1705,7 +1799,6 @@ export default function App() {
               }).length === 0 && (
                 <div className="text-center py-16 border border-white/5 bg-white/[0.01] rounded-2xl max-w-lg mx-auto space-y-2 p-8 font-sans">
                   <p className="text-sm text-gray-400">No content available.</p>
-                  <p className="text-xs text-gray-500">Create your first content from the Admin Panel.</p>
                 </div>
               )}
 

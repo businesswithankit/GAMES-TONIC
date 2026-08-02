@@ -58,7 +58,8 @@ import {
   Cpu,
   Gamepad2,
   HardDrive,
-  ExternalLink
+  ExternalLink,
+  ShieldAlert
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { ContentPost, SiteSettings, NavMenu, ActionButton, VideoItem, Advertisement, AdSenseUnit, FeaturedGameItem } from '../types';
@@ -85,7 +86,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   const [authLoading, setAuthLoading] = useState(true);
 
   // Primary Sections Tab Selector
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'post-form' | 'featured-games' | 'featured-game-form' | 'videos' | 'video-form' | 'buttons' | 'menus' | 'footer' | 'home-builder' | 'announcements' | 'socials' | 'settings' | 'custom-pages' | 'counters' | 'sponsor-ads' | 'adsense'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'post-form' | 'featured-games' | 'featured-game-form' | 'videos' | 'video-form' | 'buttons' | 'menus' | 'footer' | 'home-builder' | 'announcements' | 'socials' | 'settings' | 'custom-pages' | 'counters' | 'sponsor-ads' | 'adsense' | 'maintenance'>('dashboard');
 
   // Loaded Content States
   const [posts, setPosts] = useState<ContentPost[]>([]);
@@ -94,6 +95,15 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
   const [adsenseUnits, setAdsenseUnits] = useState<AdSenseUnit[]>([]);
   const [settingsForm, setSettingsForm] = useState<SiteSettings>(siteSettings);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Maintenance Management State
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    enabled: false,
+    title: 'Games Tonic is Currently Under Maintenance',
+    description: "We're upgrading Games Tonic with new features, performance improvements, and a better gaming experience. We'll be back shortly.",
+    status: 'Optimizing platform...',
+    showSocialIcons: true
+  });
 
   // Animated Toast Notifications
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
@@ -524,6 +534,15 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
           text: siteSettings.popupMessage.text || '',
           buttonText: siteSettings.popupMessage.buttonText || 'Acknowledge Connection',
           visible: siteSettings.popupMessage.visible !== false
+        });
+      }
+      if (siteSettings.maintenance) {
+        setMaintenanceForm({
+          enabled: !!siteSettings.maintenance.enabled,
+          title: siteSettings.maintenance.title || 'Games Tonic is Currently Under Maintenance',
+          description: siteSettings.maintenance.description || "We're upgrading Games Tonic with new features, performance improvements, and a better gaming experience. We'll be back shortly.",
+          status: siteSettings.maintenance.status || 'Optimizing platform...',
+          showSocialIcons: siteSettings.maintenance.showSocialIcons !== false
         });
       }
       if (siteSettings.adSettings) {
@@ -1835,6 +1854,22 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     setIsLoading(false);
   };
 
+  const handleSaveMaintenanceSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await set(dbRef(db, 'settings/maintenance'), maintenanceForm);
+      setSiteSettings({
+        ...siteSettings,
+        maintenance: maintenanceForm
+      });
+      showToast("Maintenance parameters successfully synchronized with Realtime DB!", "success");
+    } catch (err: any) {
+      showToast("Maintenance write error: " + err.message, "error");
+    }
+    setIsLoading(false);
+  };
+
   // AUTO GENERATE SLUG FROM TITLE
   const handlePostTitleChange = (val: string) => {
     const slugged = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
@@ -2034,6 +2069,7 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
     { key: 'announcements', label: 'Announcements System', icon: Radio, color: 'text-pink-500' },
     { key: 'socials', label: 'Social Platforms', icon: Share2, color: 'text-cyber-purple' },
     { key: 'settings', label: 'Site Specifications', icon: Settings, color: 'text-cyber-cyan' },
+    { key: 'maintenance', label: 'Maintenance Mode', icon: ShieldAlert, color: 'text-red-500' },
     { key: 'sponsor-ads', label: 'Sponsor Ads', icon: DollarSign, color: 'text-cyber-magenta' },
     { key: 'adsense', label: 'Google AdSense', icon: Cpu, color: 'text-amber-400' },
   ] as const;
@@ -5941,6 +5977,131 @@ export default function AdminPanel({ onClose, siteSettings, setSiteSettings, ads
                       {isLoading ? "SAVING..." : "SAVE GLOBAL PUBLISHER SCRIPT"}
                     </button>
                   </div>
+                </form>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB: MAINTENANCE MODE */}
+          {activeTab === 'maintenance' && (
+            <div className="space-y-8 animate-fade-in max-w-5xl text-xs font-sans">
+              
+              {/* HEADER INFO */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.01] border border-white/5 p-6 rounded-2xl">
+                <div>
+                  <h2 className="text-lg md:text-2xl font-display font-black text-white tracking-widest uppercase">Maintenance Mode Control</h2>
+                  <p className="text-xs text-gray-400 mt-1">Manage global system maintenance status. When enabled, non-admin visitors are safely redirected to the custom maintenance page in real-time.</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`px-3 py-1.5 border font-mono text-[10px] font-bold uppercase rounded-lg flex items-center gap-1.5 shadow-2xl ${
+                    maintenanceForm.enabled 
+                      ? 'bg-red-500/10 border-red-500/30 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.2)] animate-pulse' 
+                      : 'bg-green-500/10 border-green-500/30 text-green-400'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${maintenanceForm.enabled ? 'bg-red-500 animate-ping' : 'bg-green-500'}`} />
+                    STATUS: {maintenanceForm.enabled ? 'MAINTENANCE ACTIVE' : 'SYSTEM ONLINE'}
+                  </span>
+                </div>
+              </div>
+
+              {/* MAINTENANCE CONFIGURATION FORM */}
+              <div className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl">
+                <form onSubmit={handleSaveMaintenanceSettings} className="space-y-6">
+                  
+                  {/* ENABLE TOGGLE */}
+                  <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-display font-black text-white uppercase tracking-wider">Enable Global Maintenance Mode</p>
+                      <p className="text-[10px] text-gray-400">Instantly locks out non-admin visitors and displays the Maintenance Page.</p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setMaintenanceForm(prev => ({ ...prev, enabled: !prev.enabled }))}
+                        className={`px-4 py-2 text-xs font-bold font-display uppercase tracking-widest rounded-xl transition-all cursor-pointer border ${
+                          maintenanceForm.enabled 
+                            ? 'bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]' 
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                        }`}
+                      >
+                        {maintenanceForm.enabled ? 'ENABLED' : 'DISABLED'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* MAINTENANCE TITLE */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] uppercase text-gray-400 font-bold">Maintenance Heading Title</label>
+                      <input
+                        type="text"
+                        value={maintenanceForm.title}
+                        onChange={(e) => setMaintenanceForm(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Games Tonic is Currently Under Maintenance"
+                        className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-cyber-cyan transition-all"
+                        required
+                      />
+                    </div>
+
+                    {/* STATUS LINE */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] uppercase text-gray-400 font-bold">System Status Line (Optional)</label>
+                      <input
+                        type="text"
+                        value={maintenanceForm.status}
+                        onChange={(e) => setMaintenanceForm(prev => ({ ...prev, status: e.target.value }))}
+                        placeholder="Optimizing platform..."
+                        className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-cyber-cyan transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* MAINTENANCE DESCRIPTION */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] uppercase text-gray-400 font-bold">Maintenance Description</label>
+                    <textarea
+                      rows={4}
+                      value={maintenanceForm.description}
+                      onChange={(e) => setMaintenanceForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe the current maintenance window purpose..."
+                      className="w-full px-4 py-3 bg-black/60 border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-cyber-cyan transition-all"
+                      required
+                    />
+                  </div>
+
+                  {/* SHOW SOCIAL ICONS TOGGLE */}
+                  <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-display font-black text-white uppercase tracking-wider">Display Official Social Icons</p>
+                      <p className="text-[10px] text-gray-400">Render links to your YouTube, Instagram, Discord, Telegram, Facebook, and X (Twitter) at the bottom.</p>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setMaintenanceForm(prev => ({ ...prev, showSocialIcons: !prev.showSocialIcons }))}
+                        className={`px-4 py-2 text-xs font-bold font-display uppercase tracking-widest rounded-xl transition-all cursor-pointer border ${
+                          maintenanceForm.showSocialIcons 
+                            ? 'bg-cyber-cyan/20 border-cyber-cyan text-cyber-cyan hover:bg-cyber-cyan/30' 
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                        }`}
+                      >
+                        {maintenanceForm.showSocialIcons ? 'VISIBLE' : 'HIDDEN'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SUBMIT BUTTON */}
+                  <div className="flex justify-end pt-4 border-t border-white/5">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="px-6 py-3 bg-cyber-cyan text-black font-black uppercase text-xs tracking-widest rounded-xl hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isLoading ? 'SYNCHRONIZING...' : 'SAVE MAINTENANCE PROTOCOL'}
+                    </button>
+                  </div>
+
                 </form>
               </div>
 

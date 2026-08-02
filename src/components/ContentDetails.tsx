@@ -94,6 +94,14 @@ export default function ContentDetails({
   const fullDesc = (post.description || post.content)?.trim();
   const shortDesc = post.shortDescription?.trim();
 
+  const showCustomAdminBtn =
+    type === 'games' &&
+    post.buttonText &&
+    post.buttonText.trim() !== '' &&
+    post.buttonLink &&
+    isValidUrl(post.buttonLink) &&
+    post.linkEnabled !== false;
+
   // ----------------------------------------------------
   // BUTTONS CONFIGURATION
   // ----------------------------------------------------
@@ -121,17 +129,6 @@ export default function ContentDetails({
         url: targetDownloadUrl,
         icon: <Download className="w-4 h-4 shrink-0" />,
         variant: 'green'
-      });
-    }
-
-    // 3rd: OFFICIAL WEBSITE (Only if Website exists)
-    if (post.developerWebsite && isValidUrl(post.developerWebsite)) {
-      actionButtons.push({
-        key: 'website',
-        label: 'OFFICIAL WEBSITE',
-        url: post.developerWebsite,
-        icon: <Globe className="w-4 h-4 shrink-0" />,
-        variant: 'cyan'
       });
     }
 
@@ -338,12 +335,14 @@ export default function ContentDetails({
           </div>
 
           {/* About Content (Displays description only, never auto insert Developer name) */}
-          <div className="text-left space-y-2">
-            <h3 className="text-xs font-display font-bold text-cyber-cyan uppercase tracking-wider">About Content</h3>
-            <div className="p-5 sm:p-6 bg-black/40 border border-white/5 rounded-2xl text-gray-300 font-sans text-sm sm:text-base leading-relaxed whitespace-pre-line text-left">
-              {fullDesc && fullDesc !== '' ? fullDesc : "No additional content information available."}
+          {(!isFeaturedGamePopup || (fullDesc && fullDesc !== '')) && (
+            <div className="text-left space-y-2">
+              <h3 className="text-xs font-display font-bold text-cyber-cyan uppercase tracking-wider">About Content</h3>
+              <div className="p-5 sm:p-6 bg-black/40 border border-white/5 rounded-2xl text-gray-300 font-sans text-sm sm:text-base leading-relaxed whitespace-pre-line text-left">
+                {fullDesc && fullDesc !== '' ? fullDesc : "No additional content information available."}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* AdSense / Ad Placement inside Popup */}
           <div className="my-4">
@@ -603,10 +602,21 @@ export default function ContentDetails({
               );
             })}
 
+            {/* Custom Admin Button from Admin form */}
+            {showCustomAdminBtn && (
+              <button
+                onClick={() => handleBtnClick(post.buttonLink!)}
+                className="ml-auto px-5 py-3 bg-gradient-to-r from-cyber-cyan to-cyber-purple hover:brightness-110 hover:scale-[1.01] active:scale-95 text-black font-black border-transparent shadow-[0_0_15px_rgba(0,240,255,0.3)] rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4 shrink-0" />
+                <span>{post.buttonText}</span>
+              </button>
+            )}
+
             {/* Share Button (Identical sizing & padding) */}
             <button
               onClick={handleShareClick}
-              className="ml-auto px-5 py-3 bg-black/60 hover:bg-cyber-cyan/15 border border-white/10 hover:border-cyber-cyan text-gray-300 hover:text-cyber-cyan font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+              className={`${showCustomAdminBtn ? 'ml-0' : 'ml-auto'} px-5 py-3 bg-black/60 hover:bg-cyber-cyan/15 border border-white/10 hover:border-cyber-cyan text-gray-300 hover:text-cyber-cyan font-display font-bold text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2`}
             >
               <Share2 className="w-4 h-4 shrink-0" />
               <span>SHARE</span>

@@ -153,6 +153,14 @@ export interface FooterColumn {
   links: { label: string; url: string; openInNewTab?: boolean }[];
 }
 
+export interface MaintenanceSettings {
+  enabled: boolean;
+  title: string;
+  description: string;
+  status?: string;
+  showSocialIcons?: boolean;
+}
+
 export interface SiteSettings {
   siteName?: string;
   browserTitle?: string;
@@ -163,6 +171,7 @@ export interface SiteSettings {
   coverUrl?: string;
   iconUrl?: string;
   footerLinks?: any;
+  maintenance?: MaintenanceSettings;
   
   // SEO Meta tags
   metaTitle?: string;
